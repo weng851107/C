@@ -1,0 +1,15 @@
+{
+    "NULL":null,
+    "BOOLEAN":true,
+    "STRING":"string",
+    "NUMBER":100,
+    "DOUBLE":3.141593,
+    "ARRAY":["str1","str2","str3"],
+    "OBJECT":{
+        "MEMBER_NULL":null,
+        "MEMBER_BOOLEAN":false,
+        "MEMBER_STRING":"string",
+        "MEMBER_NUMBER":200,
+        "MEMBER_DOUBLE":0.123457,
+        "MEMBER_ARRAY":[1,2,3]}
+}
