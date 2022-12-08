@@ -28,6 +28,7 @@ If there is related infringement or violation of related regulations, please con
   - [計算時間差 gettimeofday()](#5.2)
   - [FileOperation](#5.3)
   - [C 執行shell command並得到回傳字串](#5.4)
+  - [linux c 底層系統調用函數open()](#5.5)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -711,7 +712,92 @@ int main()
 open是linux下的底層系統調用函數
 fopen是c/c++下的標準I/O庫函數，帶輸入/輸出緩衝
 
+linxu下的fopen是open的封裝函數，fopen最終還是要調用底層的系統調用open，進而調用在驅動實現的代碼
 
+- open對應的文件操作有：close, read, write,ioctl 等
+
+- fopen 對應的文件操作有：fclose, fread , fwrite, freopen, fseek, ftell, rewind等
+
+- 簡單範例：
+
+    ```C
+    #include <stdio.h>
+    #include <time.h>
+    #include <sys/types.h>    
+    #include <sys/stat.h>    
+    #include <fcntl.h>
+
+    const char *pathName = "wsx_out.txt";
+
+    int main(){
+        time_t t1,t2;
+        int a = 1,b=12,c=1,key =20000000;
+        int in, out, flag;   
+        char buffer[1024] = "*send!";  
+
+        // 1. 打开/创建，写入，关闭
+        out = open(pathName, O_WRONLY|O_CREAT);  
+        if (-1 == out) // 创建文件失败,则异常返回  
+        {   printf("*001*\n");  
+            return -1;   
+        }     
+        flag = 7;
+        write(out, buffer, flag); 
+        close(out); 
+
+        // 2. 打开/创建，读取，关闭
+        printf("*010*\n");
+        out = open(pathName, O_RDWR|O_CREAT);
+        if (-1 == out) // 创建文件失败,则异常返回  
+        {     
+            return -1;   
+        }     
+        printf("*020*\n");
+        flag = read(out, buffer, 1024);
+        printf("read str is :%.*s\n",flag,buffer);
+        strcpy(buffer,"*return\r\n");
+        flag =9;
+        write(out, buffer, flag); 
+        close(out); 
+
+        /*3. 打开，清空，关闭*/
+        out = open(pathName, O_RDWR|O_TRUNC); 
+        close(out); 
+
+        return 0;
+    }
+    ```
+
+```C
+int open(const char * pathname, int flags);
+int open(const char * pathname, int flags, mode_t mode);
+```
+
+- flags：
+
+    ![LinuxC_img00](./image/LinuxC/LinuxC_img00.PNG)
+
+- mode：
+
+    ![LinuxC_img01](./image/LinuxC/LinuxC_img01.PNG)
+
+- 返回 0 值, 表示成功, 只要有一個權限被禁止則返回-1
+
+    ![LinuxC_img02](./image/LinuxC/LinuxC_img02.PNG)
+
+<h2 id="5.6">Uart Tx & Rx 範例</h2>
+
+[stm32_uart.c](./code/Uart/stm32_uart.c)
+
+- 開啟COM Port設備，進行 Uart Tx 與 Rx 的通訊
+
+[stm32_uart_tx.c](./code/Uart/stm32_uart_tx.c)
+
+- 開啟COM Port設備，以迴圈形式從 stdin 讀取數據 Tx 出去
+
+[stm32_uart_rx.c](./code/Uart/stm32_uart_rx.c)
+
+- 開啟COM Port設備，以迴圈形式 Rx 並輸出到 stdout
 
 <h1 id="6">C Standard Library</h1>
 
