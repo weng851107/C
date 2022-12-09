@@ -31,6 +31,14 @@ If there is related infringement or violation of related regulations, please con
   - [C 執行shell command並得到回傳字串](#5.4)
   - [linux c 底層系統調用函數open()](#5.5)
   - [Uart Tx & Rx 範例](#5.6)
+  - [IPC (Interprocess Communication)](#5.7)
+    - [基於socket的進程間通信](#5.7.1)
+    - [mmap系統調用共享內存](#5.7.2)
+    - [posix 共享內存](#5.7.3)
+    - [system V共享內存](#5.7.4)
+    - [pipe和FIFO](#5.7.5)
+    - [信號](#5.7.6)
+    - [posix消息隊列](#5.7.7)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -806,6 +814,62 @@ int open(const char * pathname, int flags, mode_t mode);
 [stm32_uart_rx.c](./code/Uart/stm32_uart_rx.c)
 
 - 開啟COM Port設備，以迴圈形式 Rx 並輸出到 stdout
+
+<h2 id="5.7">IPC (Interprocess Communication)</h2>
+
+<h3 id="5.7.1">基於socket的進程間通信</h3>
+
+- [基於socket的進程間通信（上）](https://jasonblog.github.io/note/linux_system/ji_yu_socket_de_jin_cheng_jian_tong_xin_ff08_shang.html)
+
+- [基於socket的進程間通信（下）](https://jasonblog.github.io/note/linux_system/ji_yu_socket_de_jin_cheng_jian_tong_xin_ff08_xia_f.html)
+
+<h3 id="5.7.2">*mmap系統調用共享內存</h3>
+
+- [mmap系統調用共享內存](https://jasonblog.github.io/note/linux_system/mmapxi_tong_diao_yong_gong_xiang_nei_cun.html)
+
+<h3 id="5.7.3">posix 共享內存</h3>
+
+- [posix 共享內存](https://jasonblog.github.io/note/linux_system/posix_gong_xiang_nei_cun.html)
+
+<h3 id="5.7.4">system V共享內存</h3>
+
+- [system V共享內存](https://jasonblog.github.io/note/linux_system/system_vgong_xiang_nei_cun.html)
+
+<h3 id="5.7.5">*pipe和FIFO</h3>
+
+- [pipe和FIFO](https://jasonblog.github.io/note/linux_system/pipehe_fifo.html)
+
+  - 該函數創建一個單向的管道，返回兩個描述符 pipefd[0],和pipefd[1]，pipefd[0]用於讀操作，pipefd[1]用於寫操作。
+  - 一般應用在父子進程（有親緣關係的進程）之間的通信，先是一個進程創建管道，再fork出一個子進程，然後父子進程可以通過管道來實現通信。
+  - 管道是半雙工的，數據只能向一個方向流動；需要雙方通信時，需要建立起兩個管道
+  - 寫入的內容每次都添加在管道緩衝區的末尾，並且每次都是從緩衝區的頭部讀出數據。
+  - 1.pipe創建管道；
+2.fork創建子進程；
+3.父子進程分別關閉掉讀和寫（或寫和讀）描述符；
+4.讀端在讀描述符上開始讀（或阻塞在讀上等待寫端完成寫），寫端開始寫，完成父子進程通信過程。
+
+  - 管道最大的劣勢就是只能在擁有共同祖先進程的進程之間通信，在無親緣關係的兩個進程之間沒有辦法使用，不過有名管道FIFO解決了這個問題。可以在無親緣關係的進程之間通信，它提供一個路徑與之關聯，所以只要能訪問該路徑的進程都可以建立起通信，類似於前面的共享內存，都提供一個路徑與之關聯。
+
+<h3 id="5.7.6">信號</h3>
+
+- [信號（上）](https://jasonblog.github.io/note/linux_system/xin_hao_ff08_shang_ff09.html)
+
+  - 信號類似於中斷請求，一個進程不會阻塞在某處等待信號的到來
+  - 進程只需要註冊信號處理函數，在信號到來時執行信號處理函數即可。
+  - linux系統支持的信號可以通過命令`kill -l`來查看
+  - 在linux上信號是否可靠主要體現在信號是否支持排隊，不支持排隊的信號可能會丟失。
+  - 大多數信號可以忽略，但兩種信號除外：`SIGKILl`和`SIGSTOP`。
+
+- [信號（下）](https://jasonblog.github.io/note/linux_system/xin_hao_ff08_xia_ff09.html)
+
+  - 一般signal函數用於安裝不可靠信號，sigaction用於安裝可靠信號，但實際上兩個函數都可以安裝可靠信號和不可靠信號。
+
+<h3 id="5.7.7">posix消息隊列</h3>
+
+- [posix消息隊列](https://jasonblog.github.io/note/linux_system/posixxiao_xi_dui_lie.html)
+
+  - 一系列消息組織成的鏈表
+
 
 <h1 id="6">C Standard Library</h1>
 
