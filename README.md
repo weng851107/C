@@ -31,6 +31,10 @@ If there is related infringement or violation of related regulations, please con
   - [C 執行shell command並得到回傳字串](#5.4)
   - [linux c 底層系統調用函數open()](#5.5)
   - [Uart Tx & Rx 範例](#5.6)
+    - [(linux c) struct termios](#5.6.1)
+    - [tcflush()](#5.6.2)
+    - [tcgetattr() & tcsetattr()](#5.6.3)
+    - [cfsetispeed() & cfsetospeed()](#5.6.4)
   - [IPC (Interprocess Communication)](#5.7)
     - [基於socket的進程間通信](#5.7.1)
     - [mmap系統調用共享內存](#5.7.2)
@@ -815,6 +819,155 @@ int open(const char * pathname, int flags, mode_t mode);
 [stm32_uart_rx.c](./code/Uart/stm32_uart_rx.c)
 
 - 開啟COM Port設備，以迴圈形式 Rx 並輸出到 stdout
+
+<h3 id="5.6.1">(linux c) struct termios</h3>
+
+[termios.h](./code/Uart/termios.h)
+
+**1. 數據成員：**
+
+- 提供了一個常規的終端接口，用於控制非同步通信端口：
+
+   ```C
+   typedef unsigned char	cc_t;
+   typedef unsigned int	speed_t;
+   typedef unsigned int	tcflag_t;
+
+   #define NCCS 32
+   struct termios
+   {
+      tcflag_t c_iflag;		/* input mode flags */ /* 輸入模式 */
+      tcflag_t c_oflag;		/* output mode flags */ /* 輸出模式 */
+      tcflag_t c_cflag;		/* control mode flags */ /* 控制模式 */
+      tcflag_t c_lflag;		/* local mode flags */  /* 本地模式 */
+      cc_t c_line;			/* line discipline */ /*行控制line discipline */  
+      cc_t c_cc[NCCS];		/* control characters */  /* 控制字符 */  
+      speed_t c_ispeed;		/* input speed */ /*輸入波特率*/
+      speed_t c_ospeed;		/* output speed */ /*輸出波特率*/
+   #define _HAVE_STRUCT_TERMIOS_C_ISPEED 1
+   #define _HAVE_STRUCT_TERMIOS_C_OSPEED 1
+   };
+   ```
+
+**2. 作用：**
+
+- 這個變量被用來提供一個健全的線路設置集 合, 如果這個端口在被用戶初始化前使用. 驅動初始化這個變量使用一個標準的數值集, 它拷貝自 tty_std_termios變量. 
+
+- tty_std_termos 在 tty 核心被定義爲:
+
+    ```C
+    struct termios tty_std_termios = {
+    .c_iflag = ICRNL | IXON,
+    .c_oflag = OPOST | ONLCR,
+    .c_cflag = B38400 | CS8 | CREAD | HUPCL,
+    .c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK |
+    ECHOCTL | ECHOKE | IEXTEN,
+    .c_cc = INIT_C_CC
+    };
+    ```
+
+**3. 參數說明：**
+
+[(程式前沿) Linux串列埠通訊之termios結構體](https://codertw.com/%E7%A8%8B%E5%BC%8F%E8%AA%9E%E8%A8%80/611281/#outline__1)
+
+- c_oflag：
+  - CSIZE：字元長度，取值範圍為CS5、CS6、CS7或CS8
+  - PARENB：使用奇偶校驗
+  - PARODD：對輸入使用奇偶校驗，對輸出使用偶校驗
+  - CSTOPB：設定兩個停止位
+  - CLOCAL：忽略調變解調器線路狀態
+  - CREAD：使用接收器
+  - CRTSCTS：使用RTS/CTS流控制
+
+- c_iflag：
+  - INPCK：允許輸入奇偶校驗
+  - IGNBRK：忽略BREAK鍵輸入
+  - IXON：允許輸入時對XON/XOFF流進行控制
+  - IXOFF：允許輸入時對XON/XOFF流進行控制
+  - IXANY：輸入任何字元將重啟停止的輸出
+
+  - Note：
+
+    ```Text
+    軟體流控制（Software flow control）是在計算機數據鏈路中的一種流控制方法。
+
+    當一端的數據連接不再能接受更多數據（或者接近這個狀態），它發送XOFF字節給另一端。
+    另一端收到XOFF字節，掛起數據發送。
+
+    一端如果準備好繼續接收數據，它發送XON字節給另一端，另一端恢復數據發送。
+    ```
+
+- c_oflag：
+  - OPOST：處理後輸出
+
+- c_lflag：
+  - ICANON：使用標準輸入模式
+  - ECHO：顯示輸入字元
+  - ECHOE：如果ICANON同時設定，ERASE將刪除輸入的字元，WERASE將刪除輸入的單詞
+  - ISIG：當輸入INTR、QUIT、SUSP或DSUSP時，產生相應的訊號
+
+<h3 id="5.6.2">tcflush()</h3>
+
+- tcflush函數刷清（扔掉）輸入緩存（終端驅動法度已接管到，但用戶法度尚未讀）或輸出緩存（用戶法度已經寫，但尚未發送）
+
+    ```C
+    int tcflush（int filedes，int quene）
+
+    /***********************************
+    quene数该当是下列三个常数之一:
+        *TCIFLUSH  刷清输入队列
+        *TCOFLUSH  刷清输出队列
+        *TCIOFLUSH 刷清输入、输出队列
+
+    例如：tcflush（fd，TCIFLUSH）;
+    ***********************************/
+    ```
+
+- 在打開串口後，串口其實已經可以開始讀取 數據了 ，這段時間用戶如果沒有讀取，將保存在緩衝區裡，如果用戶不想要開始的一段數據，或者發現緩衝區數據有誤，可以使用這個函數清空緩衝
+
+- 緩衝區又稱為緩存，是內存空間的一部分。也就是說，在內存空間中預留了一定的存儲空間，這些存儲空間用來緩衝出入或輸出的數據，這部分預留的空間就叫做緩衝區。
+  - 緩衝區根據其對應的輸入設備還和輸出設備，分為輸入緩衝區和輸出緩衝區
+
+<h3 id="5.6.3">tcgetattr() & tcsetattr()</h3>
+
+- 爲了便於通過程序來獲得和修改終端參數，Linux還提供了tcgetattr函數和tcsetattr函數。
+  - `tcgetattr()` 用於獲取終端的相關參數
+    - 參數fd爲終端的文件描述符
+    - 返回的結果保存在termios結構體中
+  - `tcsetattr()` 用於設置終端參數
+    - 參數fd爲打開的終端文件描述符
+    - 參數optional_actions用於控制修改起作用的時間
+
+        ```Text
+        TCSANOW：不等數據傳輸完畢就立即改變屬性。
+        TCSADRAIN：等待所有數據傳輸結束才改變屬性。
+        TCSAFLUSH：清空輸入輸出緩衝區才改變屬性。
+        ```
+
+    - 結構體termios_p中保存了要修改的參數
+
+    ![Uart_img00](./image/Uart/Uart_img00.PNG)
+
+  - 錯誤信息：
+
+    ```Text
+    EBADF：非法的文件描述符。
+    EINTR：tcsetattr函數調用被信號中斷。
+    EINVAL：參數optional_actions使用了非法值，或參數termios中使用了非法值。
+    ENCTTY：非終端的文件描述符。
+    ```
+
+<h3 id="5.6.4">cfsetispeed() & cfsetospeed()</h3>
+
+- 獲取波特率資訊是通過 `speed_t cfgetispeed(const struct termios *termios_p);` 和 `speed_t cfgetospeed(const struct termios *termios_p);` 函式來完成的
+
+- 設置波特率：
+  - 輸出： `int cfsetospeed(struct termios *termptr, speed_t speed);`
+  - 成功返回0, 否則返回-1
+
+  - 輸入： `int cfsetispeed(struct termios *termptr, speed_t speed);`
+  - 成功返回0, 否則返回-1
+
 
 <h2 id="5.7">IPC (Interprocess Communication)</h2>
 
