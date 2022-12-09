@@ -39,6 +39,7 @@ If there is related infringement or violation of related regulations, please con
     - [pipe和FIFO](#5.7.5)
     - [信號](#5.7.6)
     - [posix消息隊列](#5.7.7)
+  - [Linux下的定時器：alarm()與setitimer()](#5.8)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -870,6 +871,9 @@ int open(const char * pathname, int flags, mode_t mode);
 
   - 一系列消息組織成的鏈表
 
+<h2 id="5.8">Linux下的定時器：alarm()與setitimer()</h2>
+
+[Linux下的定時器：alarm()與setitimer()](https://www.796t.com/p/213035.html)
 
 <h1 id="6">C Standard Library</h1>
 
