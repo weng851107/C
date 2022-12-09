@@ -12,6 +12,7 @@ If there is related infringement or violation of related regulations, please con
   - [C標準庫](#0.2)
   - [[直播公開課]韋東山老師嵌入式C語言加強](#0.3)
   - [2~32進位線上轉換器(含浮點數)](#0.4)
+  - [網頁資訊](#0.5)
 - [A ‘C’ Test: The 0x10 Best Questions for Would-be Embedded Programmers](#1)
 - [Data Structure](#2)
 - [VT100](#3)
@@ -29,6 +30,7 @@ If there is related infringement or violation of related regulations, please con
   - [FileOperation](#5.3)
   - [C 執行shell command並得到回傳字串](#5.4)
   - [linux c 底層系統調用函數open()](#5.5)
+  - [Uart Tx & Rx 範例](#5.6)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -102,6 +104,10 @@ https://www.runoob.com/cprogramming/c-standard-library.html
 <h2 id="0.4">2~32進位線上轉換器(含浮點數)</h2>
 
 http://www.speedfly.cn/tools/hexconvert/
+
+<h2 id="0.5">網頁資訊</h2>
+
+[Windows, 用 VSCode 寫 C/C++ 教學](https://hackmd.io/@liaojason2/vscodecppwindows)
 
 <h1 id="1">A ‘C’ Test: The 0x10 Best Questions for Would-be Embedded Programmers</h1>
 
@@ -786,6 +792,8 @@ int open(const char * pathname, int flags, mode_t mode);
     ![LinuxC_img02](./image/LinuxC/LinuxC_img02.PNG)
 
 <h2 id="5.6">Uart Tx & Rx 範例</h2>
+
+[How to open, read, and write from serial port in C?](https://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c)
 
 [stm32_uart.c](./code/Uart/stm32_uart.c)
 
