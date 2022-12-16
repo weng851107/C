@@ -971,6 +971,66 @@ int open(const char * pathname, int flags, mode_t mode);
 
 <h2 id="5.7">IPC (Interprocess Communication)</h2>
 
+在linux系統中進行程序間通訊時，會有比如 `共享記憶體（shm）`，`訊號量（sem）`，`訊息佇列（msg）` 等方式時，會發現有 **System v** 以及 **POSIX** 兩種不同的型別
+
+Posix(Portable Operating System Interface for Computing Systems) 是由 IEEE 和 ISO/IEC 開發的一套標準
+
+- 基於現有的UNIX 實踐和經驗，描述了作業系統的呼叫服務介面，用於保證編制的應用程式可以在原始碼一級上在多種作業系統上移植執行
+
+System V
+
+- System V 是 AT&T 的第一個商業UNIX版本(UNIX System III)的加強
+- 傳統上，System V 被看作是兩種UNIX"風味"之一(另一個是 BSD)。然而，隨著一些並不基於這兩者程式碼的UNIX實現的出現，例如 Linux 和 QNX，這一歸納不再準確，但不論如何，像POSIX這樣的標準化努力一直在試圖減少各種實現之間的不同
+
+**System V** 和 **POSIX** 是一種應用於系統的介面協議，POSIX相對於System V可以說是比較新的標準，語法相對簡單
+
+在 **linux/unix** 系統程式設計中支援 **System V** 和 **POSIX**
+
+- POSIX IPC中，每個IPC物件是有名稱的，而且名稱是一個很重要的概念，posix ipc使用ipc的名稱作為ipc的標識。mq_open(), sem_open(), shm_open()三個函式的第一個引數就是這個名稱，這個名稱不一定是在檔案系統中存在的名稱
+- 指定操作的mode，例如O_RONLY、O_WRONLY、O_RDWR、O_CREAT、O_EXCL 等
+- 在System V IPC中有一個重要的型別是key_t，在msget、semget、shmget函式操作中都需要利用這個型別是引數
+
+### 共享內存
+
+當內核空間和用戶空間存在大量數據交互時，共享內存映射就成了這種情況下的不二選擇。它能夠最大限度的降低內核空間和用戶空間之間的數據拷貝，從而大大提高系統的性能
+
+兩個不同進程A、B共享內存時，同一塊物理內存被映射到進程A、B各自的進程地址空間。進程A可以即時看到進程B對共享內存中數據的更新，反之亦然
+
+由於多個進程共享同一塊內存區域，必然需要某種同步機制，互斥鎖和信號量都可以
+
+內存映射：將用戶空間的一段內存區域（即進程地址空間的內存映射段，其位於堆空間和棧空間之間）映射到內核空間，用戶對這段內存區域的修改可以直接反映到內核空間，同樣，內核空間對這段區域的修改也直接反映用戶空間，那麼對於內核空間和用戶空間兩者之間需要大量數據傳輸等操作的話效率是非常高的
+
+https://hackmd.io/@sysprog/linux-shared-memory#SysV-%E5%85%B1%E4%BA%AB%E8%A8%98%E6%86%B6%E9%AB%94
+
+#### system V共享內存
+
+https://blog.51cto.com/u_15352922/3742131
+
+`shmget`函數創建共享內存區，或者訪問一個存在的內存區
+
+```C
+#include <sys/ipc.h>  
+#include <sys/shm.h>  
+
+int shmget(key_t key, size_t size, int shmflg);
+```
+
+- key: 函數ftok返回值，或者IPC_PRIVATE
+  - 當使用IPC_PRIVATE時，最好兩個進程空間是共享的，比如父子進程，否則當前進程產生的共享內存標識（返回值），在另一個進程裡面不易得到；
+
+
+#### mmap內存映射
+
+
+
+#### Posix共享內存
+
+
+
+
+
+
+
 <h3 id="5.7.1">基於socket的進程間通信</h3>
 
 - [基於socket的進程間通信（上）](https://jasonblog.github.io/note/linux_system/ji_yu_socket_de_jin_cheng_jian_tong_xin_ff08_shang.html)
