@@ -36,6 +36,8 @@ If there is related infringement or violation of related regulations, please con
     - [tcgetattr() & tcsetattr()](#5.6.3)
     - [cfsetispeed() & cfsetospeed()](#5.6.4)
   - [IPC (Interprocess Communication)](#5.7)
+    - [管道](#5.7.1)
+    - [消息隊列](#5.7.2)
     - [基於socket的進程間通信](#5.7.1)
     - [mmap系統調用共享內存](#5.7.2)
     - [posix 共享內存](#5.7.3)
@@ -44,6 +46,8 @@ If there is related infringement or violation of related regulations, please con
     - [信號](#5.7.6)
     - [posix消息隊列](#5.7.7)
   - [Linux下的定時器：alarm()與setitimer()](#5.8)
+  - [fork & vfork()](#5.9)
+  - [exec函數族](#5.10)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -1025,11 +1029,323 @@ int shmget(key_t key, size_t size, int shmflg);
 
 #### Posix共享內存
 
+<h3 id="5.7.1">管道</h3>
+
+管道是一種半雙工的通信方式，數據只能單向流動
+
+管道分為無名管道(pipe)與有名管道(fifo)
+
+- 無名管道(pipe)只能用於父子進程之間
+- 有名管道(fifo)可以用於無親緣關係的進程之間
+
+管道與管道之間通訊是透過一種只存在內存的文件系統，不屬於某種文件系統
+
+當一個進程項管道中寫的內容被管道的另一端的進程讀出時，這個被讀出的內容每次都會被添加到管道緩衝區的末端，且每次都是從緩衝區的頭部讀出數據
+
+![fifo_img00](./image/IPC/fifo_img00.PNG)
+
+pipe與FIFO都遵循先進後出，與stack的原則一樣，但不支持如lseek()等的文件定位操作
+
+所需要的header file
+
+```C
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+```
+
+FIFO函數的創建: 成功回傳0，失敗回傳-1
+
+- 若路徑名已經存在，就會返回 `EEXIST`錯誤
+
+```C
+int mkfifo(const char * pathname, mode_t mode);
+```
+
+- pathname 是路徑名，創建管道的名字
+- mode 是FIFO的權限，與open()中mode參數相同
+
+FIFO進程間通信
+
+- 打開一個文件，管道的寫入端向文件寫入數據，管道讀取結束後，fifo_write程序也就不會再阻塞在終端
+
+    ```C
+    #include <stdio.h>
+    #include <string.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+
+    #define P_FIFO  "txt"
+
+    int main()
+    {
+        int ret = 0;
+        int fd;
+
+        /*要寫入FIFO的數據*/
+        char buf[20] = "hello write_fifo";
+        
+        /*創建FIFO*/
+        ret = mkfifo(P_FIFO, 0777);
+        if (ret < 0) {
+            printf("create named pipe failed.\n");
+            return -1;
+        }
+
+        fd = open(P_FIFO, O_WRONLY);
+        if (fd < 0) {
+            printf("open failed.\n");
+            return -2;
+        }
+
+        /*寫入數據到FIFO*/
+        write(fd, buf, sizeof(buf));
+
+        /*關閉FIFO*/
+        close(fd);
+
+        return ret;
+    }
+
+    /*************************************
+    wengweiting@ubuntu:~/tmp/FIFO$ ./fifo_write 
+    wengweiting@ubuntu:~/tmp/FIFO$ 
+    **************************************/
+    ```
+
+- 管道的讀取端從文件中讀取數據
+
+    ```C
+    #include <stdio.h>
+    #include <string.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+
+    #define P_FIFO  "txt"
+
+    int main()
+    {
+        int ret = 0;
+        int fd;
+
+        /*要讀取FIFO的容器*/
+        char buf[20] = "hello write_fifo";
+
+        fd = open(P_FIFO, O_RDONLY);    /*O_RDONLY: 讀取模式, O_NONBLOCK: 非阻塞方式*/
+        if (fd < 0) {
+            printf("open failed.\n");
+            return -1;
+        }
+
+        /*循環讀取FIFO*/
+        while (1) {
+            memset(buf, 0, sizeof(buf));
+            if (read(fd, buf, sizeof(buf)) == 0) {
+                printf("no data.\n");
+            }
+            else {
+                printf("get data: %s\n", buf);
+            }
+            sleep(1);
+        }
+
+        /*關閉FIFO*/
+        close(fd);
+
+        return ret;
+    }
+
+    /*********************************
+    wengweiting@ubuntu:~/tmp/FIFO$ ./fifo_read 
+    get data: hello write_fifo
+    **********************************/
+    ```
+
+- `prwxrwxr-x 1 wengweiting wengweiting    0 Dec 18 05:00 txt`: 從前面的字符串中的 p 可以知道這是一個管道文件
+
+<h3 id="5.7.2">消息隊列</h3>
+
+提供了一個進程向另一個進程發送一個數據塊的方式
+
+每個數據塊都被認為含有一個類型，接收進程可以獨立地接收含有不同類型的數據結構
+
+可以通過發送消息來避免命名管道的同步阻塞問題，但是消息隊列與命名管道一樣，每個數據塊都有一個最大長度的限制
+
+消息隊列克服信號傳遞信息少與管道只能承載無格式字節流以及緩衝區大小收限等缺點
+
+每個消息隊列都在系統範圍內對應唯一的鍵值。所以要獲得一個消息隊列的描述字，只需要提供該消息隊列的鍵值即可
+
+#### system v
+
+範例消息的數據結構：
+
+```C
+struct msgbuf {
+    long mtype;
+    char mtext[1];
+}
+```
+
+(1) msgget 函數： 用來創建或訪問一個消息隊列
+
+```C
+int msgget(key_t key, int msgflg);
+```
+
+- 程序必須提供一個鍵值來命名某個特定的消息隊列
+- `msgflg` 是一個權限標誌，可以與 `IPC_CREAT` 作 `|` 操作，表示若該鍵值未存在則創建
+- 成功返回一個以 `key` 命名的消息隊列的標識符，失敗則返回-1
+
+(2) msgsnd 函數： 向消息隊列發送一個消息
+
+```C
+int msgsnd(int msqid, const void * msgp, size_t msgsz, int msgflg);
+```
+
+- 將要發送的消息存儲在 `msgp` 指向的 `msgbuf結構` 中，消息大小由 `msgsz` 指定
+- 調用成功時返回0，失敗時返回-1
+
+(3) msgrcv 函數： 從一個消息隊列獲取消息
+
+```C
+int msgrcv(int msqid, void * msgp, size_t msgsz, long msgtyp, int msgflg);
+```
+
+- `msgtype` 可以實現一種簡單的接收優先級
+  - = 0：獲取隊列中的第一個消息
+  - \> 0：獲取具有相同消息類型的第一個信息
+  - < 0：獲取類型等漁獲小於msgtype絕對值的第一個消息
+- 調用成功時，返回接收到緩存區的字節數，消息被複製到由msgp指向用戶分配的緩存區，失敗則返回-1
+
+(4) msgctl 函數： 控制消息隊列，該系統調用對由msgid標識的消息隊列執行cmd操作
+
+```C
+int msgctl(int msgid, int command, struct msgid_ds *buf);
+```
+
+- `IPC_STAT`：把 `msgid_ds結構` 中的數據設置為消息隊列的當前關聯值
+- `IPC_SET`：把消息隊列的當前關聯值設置為 `msgid_ds結構` 中給出的值
+- `IPC_RMID`：刪除消息隊列，成功返回0，否則返回-1
+
+使用 `ipcs -q` 命令可以查看創建的消息隊列，消息隊列收到信息，messages就會加一
+
+```bash
+wengweiting@ubuntu:~/tmp/Queue$ ipcs -q
+
+------ Message Queues --------
+key        msqid      owner      perms      used-bytes   messages    
+0x00123456 0          wengweitin 777        33           3
+```
+
+消息隊列間的通訊
+
+- 向消息隊列發送消息
+
+    ```C
+    #include <stdio.h>
+    #include <string.h>
+    #include <sys/ipc.h>
+    #include <sys/msg.h>
+
+    int main(void)
+    {
+        int ret = 0;
+
+        int msgid = msgget(0x123456, IPC_CREAT | 0777);
+        if (msgid == -1) {
+            perror("create msg queue fail");
+            return -1;
+        }
+        printf("open msg success...\n");
+
+        char *p = "hello world";
+
+        ret = msgsnd(msgid, p, strlen(p), 0);
+        if (ret == -1) {
+            perror("send msgid fail");
+            return -2;
+        }
+
+        return 0;
+    }
+    ```
+
+- 獲取消息隊列中的信息
+
+    ```C
+    #include <stdio.h>
+    #include <string.h>
+    #include <sys/ipc.h>
+    #include <sys/msg.h>
+
+    int main(void)
+    {
+        int ret = 0;
+
+        int msgid = msgget(0x123456, IPC_CREAT | 0777);
+        if (msgid == -1) {
+            perror("create msg queue fail");
+            return -1;
+        }
+        printf("open msg success...\n");
+
+        char buffer[1024] = {0};
+
+        ret = msgrcv(msgid, buffer, 11, 0, 0);
+        if (ret == -1) {
+            perror("recv msgid fail");
+            return -2;
+        }
+
+        printf("ret: %d buffer: %s\n", ret, buffer);
+
+        return 0;
+    }
+    ```
+
+刪除消息隊列
+
+- 用命令 `ipcrm -q msqid`
+
+    ```bash
+    wengweiting@ubuntu:~/tmp/Queue$ ipcrm -q 0
+    ```
+
+- 使用 `msgctl`，寫 `IPC_RMID`
+
+    ```C
+    #include <stdio.h>
+    #include <sys/ipc.h>
+    #include <sys/msg.h>
+
+    int main(void)
+    {
+        int ret = 0;
+
+        int msgid = msgget(0x123456, IPC_CREAT | 0777);
+        if (msgid == -1) {
+            perror("create msg queue fail");
+            return -1;
+        }
+        printf("success...!, msgid = %d\n", msgid);
+
+        char buffer[1024] = {0};
+
+        if (msgctl(msgid, IPC_RMID, NULL) == 0) {
+            printf("remove success...\n");
+        }
+
+        return 0;
+    }
+    ```
 
 
-
-
-
+---
 
 <h3 id="5.7.1">基於socket的進程間通信</h3>
 
@@ -1084,9 +1400,211 @@ int shmget(key_t key, size_t size, int shmflg);
 
   - 一系列消息組織成的鏈表
 
+---
+
 <h2 id="5.8">Linux下的定時器：alarm()與setitimer()</h2>
 
 [Linux下的定時器：alarm()與setitimer()](https://www.796t.com/p/213035.html)
+
+<h2 id="5.9">fork & vfork()</h2>
+
+會使用到的header file
+
+```C
+#include <sys/types.h>
+#include <unistd.h>
+```
+
+一個現有進程可以調用fork函數創建一個新進程，稱為子進程(child process)
+
+fork函數被調用一次但會返回兩次
+
+- 子進程會返回 0 值
+- 父進程會返回子進程ID
+
+Linux將複製父進程的地址空間內容給子進程，子進程有獨立的地址，意味父子進程不共享存儲空間
+
+fork函數創建進程範例
+
+```C
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+int main()
+{
+    /*創建一個進程*/
+    pid_t pid = fork();
+
+    /*父進程*/
+    if (pid > 0) {
+        printf("in parent. \n");
+    }
+    /*子進程*/
+    else if (pid == 0) {
+        printf("in child. \n");
+    }
+
+    return 0;
+}
+
+/********************************
+wengweiting@ubuntu:~/tmp$ ./fork 
+in parent. 
+in child. 
+*********************************/
+```
+
+得知父子進程的ID
+
+```C
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+int main()
+{
+    /*創建一個進程*/
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        return -1;
+    }
+
+    /*父進程*/
+    if (pid > 0) {
+        /*父進程中印出子進程的PID*/
+        printf("child pid is %d\n", pid);
+        /*父進程中印出父進程的PID*/
+        printf("parent pid is %d\n", getpid());
+    }
+    /*子進程*/
+    else if (pid == 0) {
+        /*子進程中印出子進程的PID*/
+        printf("child pid is %d\n", getpid());
+        /*子進程中印出父進程的PID*/
+        printf("parent pid is %d\n", getppid());
+    }
+
+    return 0;
+}
+
+/*************************************
+wengweiting@ubuntu:~/tmp$ ./fork1 
+child pid is 3208
+parent pid is 3207
+child pid is 3208
+parent pid is 3207
+**************************************/
+```
+
+vfork 與 fork 不同，並不會複製父進程的進程環境，其子進程會直接運行於父進程的地址空間中，所以在子進程不能進行寫操作，且子進程在父進程中運行時，父進程會被阻塞
+
+如果創建子進程是為了調用 exec函數 去執行一個新的程序，則應該使用 vfork函數
+
+```C
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+int main()
+{
+    int num = 1;
+    pid_t pid = vfork();
+
+    if (pid < 0) {
+        return -1;
+    }
+    else if (pid == 0) {
+        printf("num is %d, child is: %d\n", ++num, getpid());
+        exit(0);
+    }
+    else {
+        printf("num is %d, parent is: %d\n", ++num, getpid());
+        exit(0);        
+    }
+
+    return EXIT_SUCCESS;
+}
+
+/*******************
+wengweiting@ubuntu:~/tmp$ ./vfork 
+num is 2, child is: 3527
+num is 3, parent is: 3526
+********************/
+```
+
+- 如果沒有exit(0)，程序會一直跑停不下來，直到進程被占滿時才會結束
+
+<h2 id="5.10">exec函數族</h2>
+
+當 fork 後的子進程中使用 exec函數族 時，可以裝入和運行其他程序(子進程和父進程可以做不同事情)
+
+fork 創建一個新的進程就會產生一個PID，exec啟動一個新程序，替換掉原有的進程，但進程的PID是不會被改變的
+
+exec函數族： 當函數成功執行時不會有返回值，出錯時返回值為-1
+
+只有 `execve` 才是真正意義上的系統調用，其它都是在這個函數的基礎上包裝過的庫函數
+
+```C
+#include <unistd.h>
+
+extern char **environ;
+
+int execl(const char *path, const char *arg, ...);
+int execlp(const char *file, const char *arg, ...);
+int execle(const char *path, const char *arg, ..., char * const envp[]);
+int execv(const char *path, char *const argv[]);
+int execvp(const char *file, char *const argv[]);
+int execve(const char *path, char *const argv[], char * const envp[]);
+```
+
+- l表示以參數列表的形式調用
+- v表示以參數數組的方式調用
+- e表示可傳遞環境變量
+- p表示PATH中搜索執行的文件，如果給出的不是絕對路徑就會去PATH搜索相應名字的文件，如PATH沒有設置，則會默認在/bin,/usr/bin下搜索
+- 調用時參數必須以NULL結束
+
+```C
+#include <unistd.h>
+int main(int argc, char *argv[])
+{
+    char *envp[]={"PATH=/tmp", "USER=lei", "STATUS=testing", NULL};
+    char *argv_execv[]={"echo", "excuted by execv", NULL};
+    char *argv_execvp[]={"echo", "executed by execvp", NULL};
+    char *argv_execve[]={"env", NULL};
+
+    if(fork()==0) {
+        if(execl("/bin/echo", "echo", "executed by execl", NULL)<0)
+            perror("Err on execl");
+    }
+    if(fork()==0) {
+        if(execlp("echo", "echo", "executed by execlp", NULL)<0)
+            perror("Err on execlp");
+    }
+    if(fork()==0) {
+        if(execle("/usr/bin/env", "env", NULL, envp)<0)
+            perror("Err on execle");
+    }
+    if(fork()==0) {
+        if(execv("/bin/echo", argv_execv)<0)
+            perror("Err on execv");
+    }
+    if(fork()==0) {
+        if(execvp("echo", argv_execvp)<0)
+            perror("Err on execvp");
+    }
+    if(fork()==0) {
+        if(execve("/usr/bin/env", argv_execve, envp)<0)
+            perror("Err on execve");
+    }
+}
+```
 
 <h1 id="6">C Standard Library</h1>
 
