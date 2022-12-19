@@ -1717,7 +1717,146 @@ pid_t waitpid(pid_t pid, int *status, int options);
 
 #### system v
 
-(1) semget 函數
+不相關的進程可以通過它訪問一個信號量，它代表程序可能要使用的某個資源，程序對所有信號量的訪問都是間接的，先通過調用semget函數並提供一個鍵，再由系統生成一個相應的信號標識符(semget函數的返回值)，只有semget函數直接使用信號量鍵，其他的信號量函數使用由semget函數返回的信號量標識符
+
+如果多個程序使用相同的key值，key將負責協調工作
+
+(1) semget 函數：創建一個新信號量或取得一個已有信號量
+
+```C
+int semget(key_t key, int nsems, int semflg);
+```
+
+- `key_t key` 是整數型
+- `int nsems` 制定需要的信號數量，通常情況下為1
+- `int semflg` 標誌位，可以和 `IPC_CREAT` 作 `|` 運算
+- 成功返回一個相應信號標識符(非零)，失敗則返回-1
+
+(2) semop 函數：改變信號量的值
+
+```C
+int semop(int semid, struct sembuf *sops, unsigned nsops);
+```
+
+- `struct sembuf *sops` 是一個指針，指向一個數組，元素用來描述對semid代表的信號量集合中第幾個信號進行什麼操作
+
+    ```C
+    /* semop system calls takes an array of these. */
+    struct sembuf {
+        unsigned short  sem_num;	/* semaphore index in array */
+        short		sem_op;		/* semaphore operation */
+        short		sem_flg;	/* operation flags */
+    };
+    ```
+
+- `unsigned nsops` 規定該數組中操作的數量
+- 返回0代表成功，返回-1表示失敗
+
+(3) semctl 函數：用來直接控制信號量信息
+
+```C
+int semctl(int semid, int semnum, int, ...);
+```
+
+- semget並不會初始化每個信號量，必須通過 `SETVAL` 命令或 `SETALL` 命令調用 semctl 來完成
+
+信號量的出現就是保證資源在一個時刻只能有一個進程(線程)，也就是說，信號量是協調進程對共享資源操作的，起到了類似互斥鎖的作用，但卻比鎖擁有更強大的功能
+
+```C
+#include <stdio.h>
+#include <linux/sem.h>
+
+#define NUMS    10
+
+/*取得當前信號量*/
+int get_sem_val(int sid, int semnum)
+{
+    return semctl(sid, semnum, GETVAL, 0);
+}
+
+int main(void)
+{
+    int i;
+    int sem_id;
+    int pid;
+    int ret;
+    struct sembuf sem_op;    /*信號量結構*/
+    union semun sem_val;    /*信號量數值*/
+
+    /*建立信號量集，其中只有一個信號量*/
+    /*IPC_PRIVATE私有，只有本用戶使用，如果為正整數，則為公共的*/
+    /*1為信號集的數量*/
+    sem_id = semget(IPC_PRIVATE, 1, IPC_CREAT | 0600);
+    if (sem_id == -1) {
+        printf("create sem error!\n");
+        exit(1);
+    }
+    printf("create %d sem success!\n", sem_id);
+
+    /*信號量初始化*/
+    sem_val.val = 1;
+    /*設置信號量，0為第一個信號量，1為第二個信號量，以此類推; SETVAL表示設置*/
+    ret = semctl(sem_id, 0, SETVAL, sem_val);
+    if (ret < 0) {
+        printf("initlize sem error!\n");
+        exit(1);
+    }
+
+    /*創建進程*/
+    pid = fork();
+    if (pid < 0) {
+        printf("fork error!\n");
+        exit(1);
+    }
+    /*一個子進程，使用者*/
+    else if (pid == 0) {
+        for (i = 0;i < NUMS;i++) {
+            sem_op.sem_num = 0;
+            sem_op.sem_op = -1;
+            sem_op.sem_flg = 0;
+            semop(sem_id, &sem_op, 1);  /*操作信號量，每次-1*/
+            printf("%d 使用者: %d\n", i, get_sem_val(sem_id, 0));
+        }
+    }
+    /*父進程*/
+    else {
+        for (i = 0;i < NUMS;i++) {
+            sem_op.sem_num = 0;
+            sem_op.sem_op = 1;
+            sem_op.sem_flg = 0;
+            semop(sem_id, &sem_op, 1);  /*操作信號量，每次+1*/
+            printf("%d 製造者: %d\n", i, get_sem_val(sem_id, 0));            
+        }
+    }
+    exit(0);
+}
+
+/***************************************************
+wengweiting@ubuntu:~/tmp/Semaphore$ ./semaphore 
+create 0 sem success!
+0 製造者: 2
+1 製造者: 3
+2 製造者: 4
+3 製造者: 5
+4 製造者: 6
+5 製造者: 7
+6 製造者: 8
+7 製造者: 9
+8 製造者: 10
+9 製造者: 11
+0 使用者: 10
+1 使用者: 9
+2 使用者: 8
+3 使用者: 7
+4 使用者: 6
+5 使用者: 5
+6 使用者: 4
+7 使用者: 3
+8 使用者: 2
+9 使用者: 1
+****************************************************/
+```
+
 
 ---
 
