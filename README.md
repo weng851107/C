@@ -38,6 +38,10 @@ If there is related infringement or violation of related regulations, please con
   - [IPC (Interprocess Communication)](#5.7)
     - [管道](#5.7.1)
     - [消息隊列](#5.7.2)
+    - [共享內存](#5.7.3)
+    - [信號](#5.7.4)
+    - [信號量](#5.7.5)
+
     - [基於socket的進程間通信](#5.7.1)
     - [mmap系統調用共享內存](#5.7.2)
     - [posix 共享內存](#5.7.3)
@@ -1343,6 +1347,365 @@ key        msqid      owner      perms      used-bytes   messages
         return 0;
     }
     ```
+
+<h3 id="5.7.3">共享內存</h3>
+
+共享內存就兩個不相干的進程之間可以直接訪問一段內存，共享內存在兩個正在運行的進程之間共享和傳遞數據是非常有效的方式
+
+不同的進程會把共享的物理內存連接至自己的地址空間中
+
+簡單來說就是映射一段能夠被其他內存所訪問的內存，這段內存由一個進程創建，但是多個進程都可以去訪問
+
+共享內存是最快的IPC方式
+
+共享內存的使用和信號量是相似的，都是使用接口的形式
+
+#### system v
+
+(1) 創建共享內存
+
+```C
+int shmget(key_t key, size_t size, int shmflg);
+```
+
+- `key_t key` 是共享內存段的命名
+- `size_t size` 指定共享內存的容量
+- `int shmflg` 是權限標誌，與 `IPC_CREAT` 進行 `|` 來創建
+- 成功時返回一個關於key相關的標誌符，用於後續的共享內存函數，調用失敗時返回-1
+
+(2) 啟動對共享內存的訪問
+
+```C
+void *shmat(int shm_id, const void *shm_addr, int shmflg);
+```
+
+- 創建完共享內存時，還不能被任何進程訪問，需要透過shmat來啟動共享內存的訪問，並把共享內存連接到當前進程的地址空間
+- `shm_id` 是由shmget函數返回的共享內存標誌
+- `shm_addr` 指定共享內存連接到當前進程中的地址位置，通常為空，讓系統來選擇共享內存的地址
+- `shmflg` 標誌位，通常為0
+- 調用成功時返回一個指向共享內存第一個字節的指針，失敗則返回-1
+
+(3) 共享內存從當前內存中分離
+
+```C
+int shmdt(const void *shmaddr);
+```
+
+- 從共享內存中分離而不是刪除
+- `shmaddr` 是shmat函數返回的地址指針
+- 調用成功時返回0，失敗返回-1
+
+(4) 控制共享內存
+
+```C
+int shmctl(int shm_id, int command, struct shmid_ds *buf);
+```
+
+- `shm_id` 是由shmget函數返回的共享內存標誌
+- command參數是要採取的操作
+  - `IPC_STAT`：把 `shmid_ds結構` 中的數據設置為共享內存的當前關聯值
+  - `IPC_SET`：把共享內存的當前關聯值設置為 `shmid_ds結構` 中給出的值
+  - `IPC_RMID`：刪除共享內存段，成功返回0，否則返回-1
+- `struct shmid_ds *buf` 代表一個結構指針，指向共享內存的模式或訪問權限的結構
+
+    ```C
+    struct shmid_ds
+    {
+        uid_t shm_perm.uid;
+        uid_t shmperm.gid;
+        mode_t shm_perm.mode;
+    }
+    ```
+
+共享內存間的通訊
+
+- `ipcs -m` 查看相關資訊
+
+    ```bash
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/ShareMemory$ ipcs -m
+
+    ------ Shared Memory Segments --------
+    key        shmid      owner      perms      bytes      nattch     status
+    0x00000066 1572869    chicony    666        1024       0                  
+    ```
+
+- shm_snd.c
+
+    ```C
+    #include <stdlib.h>
+    #include <string.h>
+    #include <signal.h>
+    #include <fcntl.h>
+    #include <sys/ipc.h>
+    #include <sys/shm.h>
+
+    #define SHM_SIZE    1024
+
+    int main()
+    {
+        char * shmptr;
+        /*創建共享內存*/
+        int shmid = shmget(0x66, SHM_SIZE, IPC_CREAT | 0666);
+        if (shmid < 0) {
+            perror("shmget");
+            return -1;
+        }
+
+        /*對共享內存的訪問*/
+        shmptr = shmat(shmid, 0, 0);
+        if (shmptr == (void *)-1) {
+            perror("shmat");
+            return -2;
+        }
+
+        /*往共享內存寫數據*/
+        strcpy(shmptr, "shmat write ok");
+
+        shmdt(shmptr);
+
+        return 0;
+    }
+    ```
+
+- shm_rcv.c
+
+    ```C
+    #include <stdlib.h>
+    #include <string.h>
+    #include <signal.h>
+    #include <fcntl.h>
+    #include <sys/ipc.h>
+    #include <sys/shm.h>
+
+    #define SHM_SIZE    1024
+
+    int main()
+    {
+        char * shmptr;
+        /*創建共享內存*/
+        int shmid = shmget(0x66, SHM_SIZE, IPC_CREAT | 0666);
+        if (shmid < 0) {
+            perror("shmget");
+            return -1;
+        }
+
+        /*對共享內存的訪問*/
+        shmptr = shmat(shmid, 0, 0);
+        if (shmptr == (void *)-1) {
+            perror("shmat");
+            return -2;
+        }
+
+        /*往共享內存寫數據*/
+        strcpy(shmptr, "shmat write ok");
+
+        shmdt(shmptr);
+
+        return 0;
+    }
+
+    /**********************************************************
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/ShareMemory$ ./shm_rcv 
+    read: shmat write ok
+    ***********************************************************/
+    ```
+
+刪除共享內存
+
+- 使用 `ipcrm -m shmid` 命令刪除
+
+- 使用 `shmctl`函數 寫入 `IPC_RMID` 指令刪除 
+
+    ```C
+    #include <stdio.h>
+    #include <sys/ipc.h>
+    #include <sys/shm.h>
+
+    int main()
+    {
+        int ret = 0;
+
+        /*創建共享內存*/
+        int shmid = shmget(0x66, 0, 0);
+        if (shmid < 0) {
+            perror("shmget");
+            return -1;
+        }
+
+        /*對共享內存的訪問*/
+        ret = shmctl(shmid, IPC_RMID, NULL);
+        if (ret < 0) {
+            perror("remove shm fail");
+            return -2;
+        }
+
+        printf("remove key: %d success ...\n", 0x66);
+
+        return 0;
+    }
+
+    /********************************************************
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/ShareMemory$ ./shmrm 
+    remove key: 102 success ...
+    *********************************************************/
+    ```
+
+<h3 id="5.7.4">信號</h3>
+
+信號的主要來源分為兩部分
+
+- 硬件來源
+- 軟件來源
+
+進程可以用三種方式來響應一個信號
+
+- 忽略信號：不對信號作任何操作，其中有兩個信號是不能忽略的，`SIGKILL` 和 `SIGSTOP`
+- 捕捉信號：定義信號處理函數，當信號來到時作出響應的處理
+- 執行默認操作：Linux對每種信號都規定了默認操作
+
+發送信號的函數有：`kill()`, `raise()`, `abort()`, `alarm()`
+
+`kill()`函數會向包括它本身在內的其它進程發送一個信號，即把信號sig發送給進程號為PID的進程，成功時返回0，失敗會返回1，失敗的原因如下：
+
+- 給定的信號無效
+- 發送權限不夠
+- 目標進程不存在
+
+    ```C
+    #include <sys/types.h>
+    #include <signal.h>
+
+    /*把信號sig發送給進程號為PID的進程，成功時返回0*/
+    int kill(pid_t pid, int sig);
+    ```
+
+信號處理 `signal`函數：程序可以用來處理指定的信號
+
+```C
+typedef void (*sighandler_t)(int);
+sighandler_t signal(int signum, sighandler_t handler);
+```
+
+- 範例：第一次按 `ctrl + c` 時進程不會退出，第二次按下才會退出
+
+    ```C
+    #include <stdio.h>
+    #include <signal.h>
+    #include <unistd.h>
+
+    /*函數ouch對通過參數sig傳遞進來的信號作出響應*/
+    void ouch(int sig)
+    {
+        printf("signal %d\n", sig);
+        /*恢復終端中斷信號 SIGINT 的默認行為*/
+        (void)signal(SIGINT, SIG_DFL);
+    }
+
+    int main()
+    {
+        /*改變終端中斷信號 SIGINT 的默認行為，使之執行ouch函數*/
+        (void)signal(SIGINT, ouch);
+
+        while(1)
+        {
+            printf("Hello World! \n");
+            sleep(1);
+        }
+
+        return 0;
+    }
+
+    /*******************************************************
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Signal$ ./signal 
+    Hello World! 
+    Hello World! 
+    ^Csignal 2
+    Hello World! 
+    Hello World! 
+    ^C
+    ********************************************************/
+    ```
+
+常見的信號：
+
+- `SIGHUP` 從終端上發出的結束信號
+- `SIGINT` 來自鍵盤的中段信號(Ctrl +C)
+- `SIGKILL` 該信號結束接收信號的進程
+- `SIGTERM` kill命令發出的信號
+- `SIGCHLD` 標識子進程停止或結束的信號
+- `SIGSTOP` 來自鍵盤(Ctrl + Z)或調試程序的停止執行信號
+
+`kill`函數 是可以向自身發出信號和其它進程發送信號的，`raise`與之不同的是只可以向本身發送信號
+
+- 調用 raise 時子進程就會暫停，信號是對終端機的一種模擬，也是一種異步通訊方式
+
+    ```C
+    #include <stdio.h>
+    #include <signal.h>
+    #include <sys/wait.h>
+    #include <sys/types.h>
+
+    int main()
+    {
+        pid_t pid;
+        int ret;
+
+        if ((pid = fork()) < 0) {
+            printf("Fork error\n");
+            exit(1);
+        }
+
+        /*子進程*/
+        if (pid == 0) {
+            /*在子進程中使用raise()函數發出SIGSTOP信號，使子進程暫停*/
+            printf("I am child pid: %d. I am waiting for any signal\n", getpid());
+            raise(SIGSTOP);
+            printf("I am child pid: %d. I am killed by progress: %d\n", getpid(), getppid());
+            exit(0);
+        }
+        /*父進程*/
+        else {
+            sleep(2);
+            /*在父進程中收集子進程發出的信號，並調用kill()函數進行相應的操作*/
+            if ((waitpid(pid, NULL, WNOHANG)) == 0) {
+                /*若pid指向的子進程沒有退出，則返回0，且父進程不阻塞，繼續執行下面的語句*/
+                if ((ret = kill(pid, SIGKILL)) == 0) {
+                    printf("I am parent pid: %d. I am kill %d\n", getpid(), pid);
+                }
+            }
+            /*等待子進程退出，否則就一直阻塞*/
+            waitpid(pid, NULL, 0);
+            exit(0);
+        }
+    }
+
+    /********************************************************
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Signal$ ./raise 
+    I am child pid: 7808. I am waiting for any signal
+    I am parent pid: 7807. I am kill 7808
+    *********************************************************/
+    ```
+
+waitpid()函數的用法
+
+```C
+#include <sys/types.h>
+#include <sys/wait.h>
+
+pid_t waitpid(pid_t pid, int *status, int options);
+```
+
+- 在調用waitpid()函數時，當指定等待的子進程已經停止運行或結束了，則waitpid()會立即返回。但是如果子進程還沒有停止運行或結束，則調用waitpid()函數的父進程則會被阻塞，暫停運行
+
+- `int *status` 將保存子進程的狀態信息，如果status不是空指針，則狀態信息將被寫入指向的位置，如果不關心子進程為什麼退出的話，也可以傳入空指針
+- `int options` 提供了一些另外的選項來控制waitpid()函數的行為。如果不想使用這些選項，則可以把這個參數設為0
+  - `WNOHANG`：如果pid指定的子進程沒有結束，則waitpid()函數立即返回0，而不是阻塞在這個函數上等待；如果結束了，則返回該子進程的進程號。
+  - `WUNTRACED`：如果子進程進入暫停狀態，則馬上返回
+
+<h3 id="5.7.5">信號量</h3>
+
+
+
 
 
 ---
