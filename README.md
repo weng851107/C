@@ -1749,14 +1749,19 @@ int semget(key_t key, int nsems, int semflg);
 int semop(int semid, struct sembuf *sops, unsigned nsops);
 ```
 
+- 對信號量進行PV操作
+  - sem_op 大於0，表示進程對資源使用完畢，交回該資源，即對該信號量執行V操作，交回的資源數由sem_op決定， 系統會把sem_op的值加到該信號量的信號量當前值semval上
+  - sem_op 小於0，表示進程希望使用資源，對該信號量執行P操作，當信號量當前值semval 大於或者等於-sem_op時，semval減掉sem_op的絕對值， 為該進程分配對應數目的資源
+  - sem_op 等於0，表示進程要阻塞等待，直至信號量當前值semval 變為0
+
 - `struct sembuf *sops` 是一個指針，指向一個數組，元素用來描述對semid代表的信號量集合中第幾個信號進行什麼操作
 
     ```C
     /* semop system calls takes an array of these. */
     struct sembuf {
-        unsigned short  sem_num;	/* semaphore index in array */
-        short		sem_op;		/* semaphore operation */
-        short		sem_flg;	/* operation flags */
+        unsigned short  sem_num;	/* semaphore index(0 ~ nsems-1) in array */
+        short		sem_op;		/* semaphore operation(>0, 0, <0) */
+        short		sem_flg;	/* operation flags(0， IPC_WAIT, SEM_UNDO) */
     };
     ```
 
@@ -1869,6 +1874,325 @@ create 0 sem success!
 7 使用者: 3
 8 使用者: 2
 9 使用者: 1
+****************************************************/
+```
+
+#### POSIX
+
+在POSIX標準中，信號量分兩種，一種是無名信號量，一種是有名信號量。差異在於創建和銷毀的形式上，但是其他工作一樣。
+
+- 無名信號量
+  - 一般用於同一個進程中線程間同步或互斥
+  - 直接保存在內存中
+- 有名信號量
+  - 一般用於進程間同步或互斥
+  - 要求創建一個文件
+
+臨界區域是指執行數據更新的代碼需要獨占式地執行。而信號量就可以提供這樣的一種訪問機制，讓一個臨界區同一時間只有一個進程/線程在訪問它， 因此信號量是可以用來調協進程/線程對共享資源的訪問的。
+
+一個信號量的計數值用於對應有效的資源數， 表示剩下的可被佔用的互斥資源數：
+
+- 0：表示沒有可用的信號量，進程/線程進入睡眠狀態，直至信號量值大於0
+- 正值：表示有一個或多個可用的信號量，進程/線程可以使用該資源。進程/線程將信號量值減1， 表示它使用了一個資源單位
+
+對信號量的操作可以分為兩個：
+
+- P 操作：如果有可用的資源（信號量值大於0），則佔用一個資源（給信號量值減去一，進入臨界區代碼）; 如果沒有可用的資源（信號量值等於0），則被阻塞到，直到系統將資源分配給該進程/線程（進入等待隊列， 一直等到資源輪到該進程/線程）。這就像你要把車開進停車場之前，先要向保安申請一張停車卡一樣， P操作就是申請資源，如果申請成功，資源數（空閒的停車位）將會減少一個，如果申請失敗，要不在門口等，要不就走人。
+- V 操作：如果在該信號量的等待隊列中有進程/線程在等待資源，則喚醒一個阻塞的進程/線程。如果沒有進程/線程等待它， 則釋放一個資源（給信號量值加一），就跟你從停車場出去的時候一樣，空閒的停車位就會增加一個。
+
+**有名信號量**
+
+有名信號量其實是一個文件，它的名字由類似 "sem.[信号量名字]" 這樣的字符串組成，它是一個特殊的信號量文件，在創建成功之後，系統會將其放置在 `/dev/shm` 路徑下， 不同的進程間只要約定好一個相同的信號量文件名字，就可以訪問到對應的有名信號量， 並且借助信號量來進行同步或者互斥操作
+
+有名信號量是一個文件，在進程退出之後它們並不會自動消失， 而需要手工刪除並釋放資源。
+
+```C
+sem_t *sem_open(const char *name, int oflag, mode_t mode, unsigned int value);
+```
+
+- 打開/創建一個有名信號量
+- name：打開或者創建信號量的名字。
+- oflag：當指定的文件不存在時，可以指定O_CREATE 或者O_EXEL進行創建操作， 如果指定為0，後兩個參數可省略，否則後面兩個參數需要帶上。
+- mode：數字表示的文件讀寫權限，如果信號量已經存在，本參數會被忽略。
+- value：信號量初始的值，這這個參數只有在新創建的時候才需要設置，如果信號量已經存在，本參數會被忽略。
+- 返回值：返回值是一個sem_t類型的指針，它指向已經創建/打開的信號量， 後續的函數都通過改信號量指針去訪問對應的信號量。
+
+```C
+int sem_wait(sem_t *sem);
+```
+
+- 等待（獲取）信號量
+  - 如果信號量的值大於0，將信號量的值減1，立即返回
+  - 如果信號量的值為0， 則進程/線程阻塞
+- 相當於P操作。成功返回0，失敗返回-1
+
+```C
+int sem_trywait(sem_t *sem);
+```
+
+- 也是等待信號量
+- 如果指定信號量的計數器為0，那麼直接返回EAGAIN錯誤，而不是阻塞等待
+
+```C
+int sem_post(sem_t *sem);
+```
+
+- 釋放信號量，讓信號量的值加1，相當於V操作。成功返回0，失敗返回-1
+
+```C
+int sem_close(sem_t *sem);
+```
+
+- 關閉一個信號量，這表示當前進程/線程取消對信號量的使用，它的作用僅在當前進程/線程， 其他進程/線程依然可以使用該信號量
+
+```C
+int sem_unlink(const char *name);
+```
+
+- 主動刪除一個信號量，直接刪除指定名字的信號量文件
+
+範例
+
+```C
+#include <unistd.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+
+int main(int argc, char **argv)
+{
+    int pid;
+    sem_t *sem;
+    const char sem_name[] = "my_sem_test";
+
+    pid = fork();
+
+    if (pid < 0) {
+        printf("error in the fork!\n");
+    }
+    /* 子进程 */
+    else if (pid == 0) {
+        /*创建/打开一个初始值为1的信号量*/
+        sem = sem_open(sem_name, O_CREAT, 0644, 1);
+
+        if (sem == SEM_FAILED) {
+            printf("unable to create semaphore...\n");
+
+            sem_unlink(sem_name);
+
+            exit(-1);
+        }
+        /*获取信号量*/
+        sem_wait(sem);
+
+        for (int i = 0; i < 3; ++i) {
+
+            printf("child process run: %d\n", i);
+            /*睡眠释放CPU占用*/
+            sleep(1);
+        }
+
+    /*释放信号量*/
+    sem_post(sem);
+
+    }
+    /* 父进程 */
+    else {
+
+        /*创建/打开一个初始值为1的信号量*/
+        sem = sem_open(sem_name, O_CREAT, 0644, 1);
+
+        if (sem == SEM_FAILED) {
+            printf("unable to create semaphore...\n");
+
+            sem_unlink(sem_name);
+
+            exit(-1);
+        }
+        /*申请信号量*/
+        sem_wait(sem);
+
+        for (int i = 0; i < 3; ++i) {
+
+            printf("parent process run: %d\n", i);
+            /*睡眠释放CPU占用*/
+            sleep(1);
+        }
+
+        /*释放信号量*/
+        sem_post(sem);
+        /*等待子进程结束*/
+        wait(NULL);
+
+        /*关闭信号量*/
+        sem_close(sem);
+        /*删除信号量*/
+        sem_unlink(sem_name);
+    }
+
+    return 0;
+}
+
+/**************************************************
+wengweiting@ubuntu:~/tmp/Semaphore$ ./semaphore1 
+parent process run: 0
+parent process run: 1
+parent process run: 2
+child process run: 0
+child process run: 1
+child process run: 2
+***************************************************/
+```
+
+**無名信號量**
+
+不使用文件系統標識，直接存在程序運行的內存中， 不同進程之間不能訪問，不能用於不同進程之間相互訪問
+
+
+```C
+int sem_init(sem_t *sem， int pshared， unsigned int value);
+```
+
+- 初始化信號量
+- sem是要初始化的信號量，不要對已初始化的信號量再做sem_init操作，會發生不可預知的問題
+- pshared表示此信號量是在進程間共享還是線程間共享，由於目前Linux 還沒有實現進程間共享無名信號量， 所以這個值只能夠取0，表示這個信號量是當前進程的局部信號量
+- value是信號量的初始值
+- 返回值：成功返回0，失敗返回-1
+
+```C
+int sem_destroy(sem_t *sem);
+```
+
+- 銷毀信號量，其中sem是要銷毀的信號量
+- 只有用sem_init初始化的信號量才能用sem_destroy()函數銷毀
+- 成功返回0，失敗返回-1
+
+```C
+int sem_wait(sem_t *sem);
+int sem_trywait(sem_t *sem);
+int sem_post(sem_t *sem);
+```
+
+- 與有名信號量的使用是一樣的
+
+範例
+
+```C
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+
+#define THREAD_NUMBER 3 /* 线程数 */
+#define REPEAT_NUMBER 4 /* 每个线程中的小任务数 */
+
+sem_t sem[THREAD_NUMBER];
+
+/*线程函数*/
+void *thread_func(void *arg)
+{
+    int num = (unsigned long long)arg;
+    int delay_time = 0;
+    int count = 0;
+
+    /* 等待信号量，进行 P 操作 */
+    sem_wait(&sem[num]);
+
+    printf("Thread %d is starting\n", num);
+    for (count = 0; count < REPEAT_NUMBER; count++)
+    {
+        printf("\tThread %d: job %d \n",num, count);
+        sleep(1);
+    }
+
+    printf("Thread %d finished\n", num);
+    /*退出线程*/
+    pthread_exit(NULL);
+}
+
+
+
+int main(void)
+{
+    pthread_t thread[THREAD_NUMBER];
+    int i = 0, res;
+    void * thread_ret;
+
+    /*创建三个线程，三个信号量*/
+    for (i = 0; i < THREAD_NUMBER; i++)
+    {
+        /*创建信号量，初始信号量值为0*/
+        sem_init(&sem[i], 0, 0);
+        /*创建线程*/
+        res = pthread_create(&thread[i], NULL, thread_func, (void*)(unsigned long long)i);
+
+        if (res != 0)
+        {
+            printf("Create thread %d failed\n", i);
+            exit(res);
+        }
+    }
+
+    printf("Create treads success\n Waiting for threads to finish...\n");
+
+    /*按顺序释放信号量 V操作*/
+    for (i = 0; i<THREAD_NUMBER ; i++)
+    {
+        /* 进行 V 操作 */
+        sem_post(&sem[i]);
+        /*等待线程执行完毕*/
+        res = pthread_join(thread[i], &thread_ret);
+        if (!res)
+        {
+            printf("Thread %d joined\n", i);
+        }
+        else
+        {
+            printf("Thread %d join failed\n", i);
+        }
+
+    }
+
+    for (i = 0; i < THREAD_NUMBER; i++)
+    {
+        /* 删除信号量 */
+        sem_destroy(&sem[i]);
+    }
+
+    return 0;
+}
+
+/****************************************************
+wengweiting@ubuntu:~/tmp/Semaphore$ ./semaphore2 
+Create treads success
+ Waiting for threads to finish...
+Thread 0 is starting
+        Thread 0: job 0 
+        Thread 0: job 1 
+        Thread 0: job 2 
+        Thread 0: job 3 
+Thread 0 finished
+Thread 0 joined
+Thread 1 is starting
+        Thread 1: job 0 
+        Thread 1: job 1 
+        Thread 1: job 2 
+        Thread 1: job 3 
+Thread 1 finished
+Thread 1 joined
+Thread 2 is starting
+        Thread 2: job 0 
+        Thread 2: job 1 
+        Thread 2: job 2 
+        Thread 2: job 3 
+Thread 2 finished
+Thread 2 joined
 ****************************************************/
 ```
 
