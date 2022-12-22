@@ -41,14 +41,7 @@ If there is related infringement or violation of related regulations, please con
     - [共享內存](#5.7.3)
     - [信號](#5.7.4)
     - [信號量](#5.7.5)
-
-    - [基於socket的進程間通信](#5.7.1)
-    - [mmap系統調用共享內存](#5.7.2)
-    - [posix 共享內存](#5.7.3)
-    - [system V共享內存](#5.7.4)
-    - [pipe和FIFO](#5.7.5)
-    - [信號](#5.7.6)
-    - [posix消息隊列](#5.7.7)
+    - [基於socket的進程間通信](#5.7.6)
   - [Linux下的定時器：alarm()與setitimer()](#5.8)
   - [fork & vfork()](#5.9)
   - [exec函數族](#5.10)
@@ -1348,6 +1341,256 @@ key        msqid      owner      perms      used-bytes   messages
     }
     ```
 
+#### POSIX
+
+打開、關閉和斷開鏈接消息隊列
+
+(1) mq_open()函數創建一個消息隊列或打開一個既有隊列
+
+```C
+#include <fcntl.h> /* Defines O_* constants */ 
+#include <sys/stat.h> /* Defines mode constants */ 
+#include <mqueue.h> 
+
+mqd_t mq_open( const  char *name, int oflag );
+mqd_t mq_open(const char *name, int oflag, mode_t mode, struct mq_attr *attr); 
+```
+
+- name：標識了消息隊列，必須使用斜線打頭後面跟著一個或多個非斜線字符的名字
+- oflag：
+
+    ![queue_img00](./image/IPC/queue_img00.PNG)
+
+- mode：指定了施加於新消息隊列之上的權限
+- attr：是一個mq_attr結構，制定了新消息隊列的特性。如果attr為NULL，那麼將使用系統定義的默認特性創建隊列
+- Returns a message queue descriptor on success, or (mqd_t) – 1 on error
+
+(2) mq_close()函數關閉消息隊列描述符mqdes
+
+```C
+#include <mqueue.h>
+int mq_close(mqd_t mqdes);
+```
+
+- Returns 0 on success, or – 1 on error
+
+(3) mq_unlink()函數刪除通過name標識的消息隊列，並將隊列標記為在所有進程使用完該隊列之後銷毀該隊列
+
+```C
+#include <mqueue.h>
+int mq_unlink( const  char * name);
+```
+
+- mq_close()並不會刪除消息隊列，mq_unlink()才會刪除消息隊列
+- Returns 0 on success, or – 1 on error
+
+消息隊列特性
+
+(4) mq_getattr()函數返回一個包含與描述符mqdes相關聯的消息隊列的相關信息mq_attr結構
+
+```C
+#include <mqueue.h>
+int mq_getattr(mqd_t mqdes, struct mq_attr * attr);
+```
+
+- 獲取消息隊列特性
+- Returns 0 on success, or – 1 on error
+
+(5) mq_setattr()函數設置與mqdes相關聯的消息隊列描述符的特性
+
+```C
+#include <mqueue.h>
+int mq_setattr(mqd_t mqdes, const  struct mq_attr * newattr, struct mq_attr * oldattr);
+```
+
+- 修改消息隊列特性
+- Returns 0 on success, or – 1 on error
+
+交換信息
+
+(6) mq_send()函數將位於msg_ptr指向的緩衝區中的消息添加到描述符mqdes所引用的消息隊列中
+
+```C
+#include <mqueue.h>
+int mq_send(mqd_t mqdes, const  char * msg_ptr, size_t msg_len, unsigned int msg_prio);
+```
+
+- 發送消息
+- Returns 0 on success, or – 1 on error
+- msg_len參數指定了msg_ptr指向消息的長度，必須小於等於mq_msgsize。否則返回EMSGSIZE錯誤。長度為零是允許的
+- msg_prio表示消息的優先級，0表示最低優先級，最大優先級為MQ_PRIO_MAX
+- 一條消息被添加到隊列中時，它會被放置在隊列中具有相同優先級的所有消息之後
+- 如果消息隊列滿，那麼後續mq_send()調回會阻塞直到隊列中存在可用空間為止，或者在O_NONBLOCK情況下立即失敗並返回EAGAIN錯誤
+
+(7) mq_receive()函數從mqdes引用的消息隊列中刪除一條優先級最高、存在時間最長的消息，並將刪除的消息放置在msg_ptr指向的緩衝區
+
+```C
+#include <mqueue.h> 
+ssize_t mq_receive(mqd_t mqdes, char * msg_ptr, size_t msg_len, unsigned int * msg_prio);
+```
+
+- 接收消息
+- Returns number of bytes in received message on success, or – 1 on error
+- msg_len指定msg_ptr指向的換種區中的可用字節數
+- msg_len必須大於或等於隊列ms_msgsize，否則mq_receive()就會失敗並返回EMSGSIZE錯誤
+- msg_prio不為NULL，那麼接收到消息的優先級就會被複製到msg_prio
+- 如果消息隊列為空，那麼mq_receive()會阻塞直到存在可用的消息，或者在O_NONBLOCK情況下會立即失敗並返回EAGAIN
+
+範例：
+
+- 消息生產者 `gcc -o mq_send mq_send.c -lrt`
+
+    ```C
+    #include <fcntl.h>           /* For O_* constants */
+    #include <sys/stat.h>        /* For mode constants */
+    #include <mqueue.h>
+    #include <stdio.h>
+    #include <string.h>
+    #include <unistd.h>
+    #include <stdlib.h>
+
+    #define MQ_NAME "/mq_0"
+
+    struct smessage{
+        char name[128];
+        char content[1024];
+    };
+
+    int main(int argc, char** argv) 
+    {
+        int ret = 0;
+        
+        if (argc < 4)
+        {
+            printf("Usage: ./mq_write name message prio\n");
+            return 0;
+        }
+
+        mqd_t mq_fd;
+        // 打開或創建消息隊列，如果指定C_CREAT標誌位則需要提供額外兩個參數
+        mq_fd = mq_open(MQ_NAME, O_RDWR|O_CREAT, 0, NULL);
+        if (mq_fd == (mqd_t)-1)
+        {
+            perror(__FUNCTION__);
+            return -1;
+        }
+        struct smessage msg;
+        memset(&msg, 0, sizeof(msg));
+        strncpy(msg.name, argv[1], strlen(argv[1]));
+        strncpy(msg.content, argv[2], strlen(argv[2]));
+        unsigned int prio = (unsigned int)atoi(argv[3]);
+
+        // 發送消息
+        ret = mq_send(mq_fd, (const char *)&msg, sizeof(msg), prio);
+        if (ret == -1)
+        {
+            perror("mq_send error");
+            return ret;
+        }
+        printf("mq_send succ\n");
+
+        return 0;
+    }
+
+    /*******************************************************
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Queue$ sudo ./mq_send "Person" "Hi, I am Antony." 50
+    mq_send succ
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Queue$ sudo ./mq_send "Animal" "Hi, Dog" 30
+    mq_send succ
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Queue$ sudo ./mq_send "Animal" "Hi, Cat" 70
+    mq_send succ
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Queue$ sudo ./mq_send "Food" "It smell so good. Barbecue" 10
+    mq_send succ
+    ********************************************************/
+    ```
+
+- 消息使用者 `gcc -o mq_recv mq_recv.c -lrt`
+
+    ```C
+    #include <fcntl.h>           /* For O_* constants */
+    #include <sys/stat.h>        /* For mode constants */
+    #include <mqueue.h>
+    #include <stdio.h>
+    #include <string.h>
+    #include <unistd.h>
+    #include <stdlib.h>
+
+    // 消息隊列名字
+    #define MQ_NAME "/mq_0"
+
+    struct smessage{
+        char name[128];
+        char content[1024];
+    };
+
+    int main() 
+    {
+        mqd_t mq_fd;
+        // 打開或創建消息隊列，如果指定O_CREAT，則需要填充額外兩個參數
+        mq_fd = mq_open(MQ_NAME, O_RDWR|O_CREAT, 0, NULL);
+        if (mq_fd == (mqd_t)-1)
+        {
+            perror(__FUNCTION__);
+            return -1;
+        }
+
+        // 獲取消息隊列屬性，讀取消息的時候要用到
+        struct mq_attr attr;
+        if (mq_getattr(mq_fd, &attr) == -1)
+        {
+            perror("mq_getattr");
+            return -1;
+        }
+        printf("mq_msgsize:%ld\n", attr.mq_msgsize);
+
+        // 分配消息緩存
+        char *buffer = malloc(attr.mq_msgsize);
+        if (buffer == NULL)
+        {
+            printf("malloc error\n");
+            return -1;
+        }
+        memset(buffer, 0, attr.mq_msgsize);
+                
+        struct smessage *msg;
+        unsigned int prio = 0;
+
+        // 讀取消息
+        if (mq_receive(mq_fd, buffer,attr.mq_msgsize, &prio) != -1)
+        {
+            msg = (struct smessage*)buffer;
+            printf("recv msg, name:%s, content:%s, prio:%lu\n", msg->name, msg->content, prio);
+        }
+        else
+        {
+            perror("mq_receive error");
+        }
+
+        // 釋放buffer
+        free(buffer);
+
+        // 關閉消息隊列
+        mq_close(mq_fd);
+
+        return 0;
+    }
+
+    /*********************************************************
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Queue$ sudo ./mq_recv 
+    mq_msgsize:8192
+    recv msg, name:Animal, content:Hi, Cat, prio:70
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Queue$ sudo ./mq_recv 
+    mq_msgsize:8192
+    recv msg, name:Person, content:Hi, I am Antony., prio:50
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Queue$ sudo ./mq_recv 
+    mq_msgsize:8192
+    recv msg, name:Animal, content:Hi, Dog, prio:30
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/Queue$ sudo ./mq_recv 
+    mq_msgsize:8192
+    recv msg, name:Food, content:It smell so good. Barbecue, prio:10
+    **********************************************************/
+    ```
+
 <h3 id="5.7.3">共享內存</h3>
 
 共享內存就兩個不相干的進程之間可以直接訪問一段內存，共享內存在兩個正在運行的進程之間共享和傳遞數據是非常有效的方式
@@ -1547,6 +1790,227 @@ int shmctl(int shm_id, int command, struct shmid_ds *buf);
     /********************************************************
     chicony@ubuntu:/mnt/disk2/SF/tmp/00/ShareMemory$ ./shmrm 
     remove key: 102 success ...
+    *********************************************************/
+    ```
+
+#### POSIX
+
+1. 記憶體對映檔案(memory-mapped file)，由open函式開啟，由mmap函式把所得到的描述符對映到當前程序空間地址中的一個檔案。
+2. 共享記憶體區物件(shared-memory object)，由shm_open函式開啟一個Posix.1 IPC名字，所返回的描述符由mmap函式對映到當前程序的地址空間。
+
+![shm_img00](./image/IPC/shm_img00.PNG)
+
+(1) shm_open函式 建立一個新的共享記憶體區物件或開啟一個已存在的共享記憶體區物件
+
+```C
+#include <sys/mman.h>
+#include <sys/stat.h>        /* For mode constants */
+#include <fcntl.h>           /* For O_* constants */
+
+int shm_open(const char *name, int oflag, mode_t mode);
+
+/*Link with -lrt.*/
+```
+
+- 成功則非負描述符，若出錯則為-1
+- oflag引數與open函式的flags一樣，必須含有O_RDONLY或O_RDWR標準
+- mode引數與open函式的mode一樣，是指定許可權位
+
+(2) shm_unlink函式 刪除一個共享記憶體區物件的名字，刪除一個名字不會影響對於其底層支撐物件的現有引用，直到對於該物件的引用全部關閉為止
+
+```C
+#include <sys/mman.h>
+#include <sys/stat.h>        /* For mode constants */
+#include <fcntl.h>           /* For O_* constants */
+
+int shm_unlink(const char *name);
+
+/*Link with -lrt.*/
+```
+
+- 成功則為0，若出錯則為-1
+
+(3)  mmap函式 把一個檔案或者一個Posix共享記憶體區物件對映至呼叫程序的地址空間
+
+```C
+#include <sys/mman.h>  
+
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);  
+```
+
+- 若成功則為被對映區的起始地址，若出錯則為MAP_FAILED
+- addr可以指定描述符fd應被對映到程序內空間的起始地址，它通常被指定為一個空指標，這樣告訴核心自己去選擇起始地址
+- length是對映到呼叫程序地址空間中位元組數，它從被對映檔案開頭offset個位元組出開始算
+- offset通常設定為0
+- 記憶體對映區的保護由port引數指定，通常設定為PROT_READ | PROT_WRITE（可讀與可寫）
+  - PORT_READ    -> 可讀
+  - PORT_WRITE  -> 可寫
+  - PORT_EXEC    -> 可執行
+  - PORT_NONE   -> 資料不可訪問
+- flags用於設定記憶體對映區的資料被修改時，是否改變其底層支撐物件(這裡的物件是檔案)，MAP_SHARED和MAP_PRIVATE必須指定一個
+  - MAP_SHARED：在記憶體中對檔案的修改會同步到物理檔案中，可通過less檢視
+  - MAP_PRIVATE：在記憶體中對檔案的修改不會同步到物理檔案中，可通過less檢視
+
+(4) ftruncate函式 來指定新建立的共享記憶體區物件的大小，或者修改已存在的物件的大小
+
+```C
+#include <unistd.h>
+#include <sys/types.h>
+
+int truncate(const char *path, off_t length);
+int ftruncate(int fd, off_t length);
+```
+
+- 若成功則為0，若出錯則為-1
+
+(5) fstat函式 獲取有關該物件的資訊
+
+```C
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+int fstat(int fd, struct stat *buf);
+```
+
+- 若成功則為0，若出錯則為-1
+- stat結構有12個或以上的成員，然而當fd指代一個記憶體共享區物件時，只有四個成員含有資訊
+
+    ```C
+    struct stat {
+        mode_t    st_mode;    /* protection */
+        uid_t     st_uid;     /* user ID of owner */
+        gid_t     st_gid;     /* group ID of owner */
+        off_t     st_size;    /* total size, in bytes */
+    };
+    ```
+
+(6) munmap函數 從某個程序空間刪除一個對映關係
+
+```C
+#include <sys/mman.h>
+
+int munmap(void *addr, size_t length);
+```
+
+- 若成功則為0，若出錯則為-1
+- addr引數是由mmap返回的地址，len是對映區的大小
+
+範例
+
+- 寫程序
+
+    ```C
+    #include <stdio.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <sys/mman.h>
+    #include <errno.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    #define MAXSIZE 1024*4   /*共享記憶體的大小，建議設定成記憶體頁的整數倍*/
+    #define FILENAME "shm.test"
+
+    int main()
+    {
+        /* 建立共享物件,可以檢視/dev/shm目錄 */
+        int fd = shm_open(FILENAME, O_CREAT | O_TRUNC | O_RDWR, 0777);
+        if (fd == -1) {
+            perror("open failed:");
+            exit(1);
+        }
+
+        /* 調整大小 */
+        if (ftruncate(fd, MAXSIZE) == -1) {
+            perror("ftruncate failed:");
+            exit(1);
+        }
+
+        /* 獲取屬性 */
+        struct stat buf;
+        if (fstat(fd, &buf) == -1) {
+            perror("fstat failed:");
+            exit(1);
+        }
+        printf("the shm object size is %ld\n", buf.st_size);
+
+        /* 建立對映關係 */
+        char *ptr = (char*)mmap(NULL, MAXSIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        if (ptr == MAP_FAILED) {
+            perror("mmap failed:");
+            exit(1);
+        }
+        printf("mmap %s success\n", FILENAME);
+        close(fd); /* 關閉套接字 */
+
+        /* 寫入資料 */
+        char *content = "hello world";
+        strncpy(ptr, content, strlen(content));
+
+        return 0;
+    }
+
+    /******************************************************
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/ShareMemory$ ./posix_shm_snd 
+    the shm object size is 4096
+    mmap shm.test success
+    *******************************************************/
+    ```
+
+- 讀程序
+
+    ```C
+    #include <stdio.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <sys/mman.h>
+    #include <errno.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    #define FILENAME "shm.test"
+
+    int main()
+    {
+        /* 建立共享物件,可以檢視/dev/shm目錄 */
+        int fd = shm_open(FILENAME, O_RDONLY, 0);
+        if (fd == -1) {
+            perror("open failed:");
+            exit(1);
+        }
+
+        /* 獲取屬性 */
+        struct stat buf;
+        if (fstat(fd, &buf) == -1) {
+            perror("fstat failed:");
+            exit(1);
+        }
+        printf("the shm object size is %ld\n", buf.st_size);
+
+        /* 建立對映關係 */
+        char *ptr = (char*)mmap(NULL, buf.st_size, PROT_READ, MAP_SHARED, fd, 0);
+        if (ptr == MAP_FAILED) {
+            perror("mmap failed:");
+            exit(1);
+        }
+        printf("mmap %s success\n", FILENAME);
+        close(fd); /* 關閉套接字 */
+
+        printf("the read msg is:%s\n", ptr);
+
+        return 0;
+    }
+
+    /*********************************************************
+    chicony@ubuntu:/mnt/disk2/SF/tmp/00/ShareMemory$ ./posix_shm_rcv 
+    the shm object size is 4096
+    mmap shm.test success
+    the read msg is:hello world
     *********************************************************/
     ```
 
@@ -2196,63 +2660,9 @@ Thread 2 joined
 ****************************************************/
 ```
 
+<h3 id="5.7.6">基於socket的進程間通信</h3>
 
----
-
-<h3 id="5.7.1">基於socket的進程間通信</h3>
-
-- [基於socket的進程間通信（上）](https://jasonblog.github.io/note/linux_system/ji_yu_socket_de_jin_cheng_jian_tong_xin_ff08_shang.html)
-
-- [基於socket的進程間通信（下）](https://jasonblog.github.io/note/linux_system/ji_yu_socket_de_jin_cheng_jian_tong_xin_ff08_xia_f.html)
-
-<h3 id="5.7.2">*mmap系統調用共享內存</h3>
-
-- [mmap系統調用共享內存](https://jasonblog.github.io/note/linux_system/mmapxi_tong_diao_yong_gong_xiang_nei_cun.html)
-
-<h3 id="5.7.3">posix 共享內存</h3>
-
-- [posix 共享內存](https://jasonblog.github.io/note/linux_system/posix_gong_xiang_nei_cun.html)
-
-<h3 id="5.7.4">system V共享內存</h3>
-
-- [system V共享內存](https://jasonblog.github.io/note/linux_system/system_vgong_xiang_nei_cun.html)
-
-<h3 id="5.7.5">*pipe和FIFO</h3>
-
-- [pipe和FIFO](https://jasonblog.github.io/note/linux_system/pipehe_fifo.html)
-
-  - 該函數創建一個單向的管道，返回兩個描述符 pipefd[0],和pipefd[1]，pipefd[0]用於讀操作，pipefd[1]用於寫操作。
-  - 一般應用在父子進程（有親緣關係的進程）之間的通信，先是一個進程創建管道，再fork出一個子進程，然後父子進程可以通過管道來實現通信。
-  - 管道是半雙工的，數據只能向一個方向流動；需要雙方通信時，需要建立起兩個管道
-  - 寫入的內容每次都添加在管道緩衝區的末尾，並且每次都是從緩衝區的頭部讀出數據。
-  - 1.pipe創建管道；
-2.fork創建子進程；
-3.父子進程分別關閉掉讀和寫（或寫和讀）描述符；
-4.讀端在讀描述符上開始讀（或阻塞在讀上等待寫端完成寫），寫端開始寫，完成父子進程通信過程。
-
-  - 管道最大的劣勢就是只能在擁有共同祖先進程的進程之間通信，在無親緣關係的兩個進程之間沒有辦法使用，不過有名管道FIFO解決了這個問題。可以在無親緣關係的進程之間通信，它提供一個路徑與之關聯，所以只要能訪問該路徑的進程都可以建立起通信，類似於前面的共享內存，都提供一個路徑與之關聯。
-
-<h3 id="5.7.6">信號</h3>
-
-- [信號（上）](https://jasonblog.github.io/note/linux_system/xin_hao_ff08_shang_ff09.html)
-
-  - 信號類似於中斷請求，一個進程不會阻塞在某處等待信號的到來
-  - 進程只需要註冊信號處理函數，在信號到來時執行信號處理函數即可。
-  - linux系統支持的信號可以通過命令`kill -l`來查看
-  - 在linux上信號是否可靠主要體現在信號是否支持排隊，不支持排隊的信號可能會丟失。
-  - 大多數信號可以忽略，但兩種信號除外：`SIGKILl`和`SIGSTOP`。
-
-- [信號（下）](https://jasonblog.github.io/note/linux_system/xin_hao_ff08_xia_ff09.html)
-
-  - 一般signal函數用於安裝不可靠信號，sigaction用於安裝可靠信號，但實際上兩個函數都可以安裝可靠信號和不可靠信號。
-
-<h3 id="5.7.7">posix消息隊列</h3>
-
-- [posix消息隊列](https://jasonblog.github.io/note/linux_system/posixxiao_xi_dui_lie.html)
-
-  - 一系列消息組織成的鏈表
-
----
+[網路相關簡介](https://github.com/weng851107/Embedded_Linux/blob/master/[%E7%AC%AC4%E7%AF%87]_%E5%B5%8C%E5%85%A5%E5%BC%8FLinux%E6%87%89%E7%94%A8%E9%96%8B%E7%99%BC%E5%9F%BA%E7%A4%8E%E7%9F%A5%E8%AD%98.md#08_%E7%B6%B2%E8%B7%AF%E7%9B%B8%E9%97%9C%E7%B0%A1%E4%BB%8B:~:text=mt_cal_distance.c-,08_%E7%B6%B2%E8%B7%AF%E7%9B%B8%E9%97%9C%E7%B0%A1%E4%BB%8B,-8%2D1_%E7%B6%B2%E8%B7%AF)
 
 <h2 id="5.8">Linux下的定時器：alarm()與setitimer()</h2>
 
