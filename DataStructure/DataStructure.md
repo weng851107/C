@@ -39,7 +39,11 @@ If there is related infringement or violation of related regulations, please con
   - [(5) 二元搜索樹走訪函式](#5.5)
   - [(6) 引線二元樹(Thread Binary Tree)](#5.6)
 
+<h1 id="0">自我練習</h1>
 
+<h2 id="0.1">單向鏈結串列</h2>
+
+[SingleListNode.c](./SingleListNode.c)
 
 <h1 id="1">指標教學</h1>
 
