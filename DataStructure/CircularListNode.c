@@ -5,16 +5,11 @@ typedef struct node
 {
     int data;
     struct node *next;
-} Node, *Listnode;
-
-void add_node(Node **start, int value);
-void insert_node(Node **start, int insert_after_value, int value);
-void delete_node(Node **start, int value);
-void print_list(Node *node);
-void free_list(Node *node);
+}Node, *ListNode;
 
 void add_node(Node **start, int value)
 {
+    Node *header = *start;
     Node *current = *start;
     Node *newnode = (Node *)malloc(sizeof(Node));
     newnode->data = value;
@@ -22,25 +17,34 @@ void add_node(Node **start, int value)
 
     if (*start == NULL) {
         *start = newnode;
+        newnode->next = *start;
         return;
     }
 
-    while (current->next != NULL) {
+    while (current->next != header) {
         current = current->next;
     }
     current->next = newnode;
-
+    newnode->next = header;
+    
     return;
 }
 
 void insert_node(Node **start, int insert_after_value, int value)
 {
+    Node *header = *start;
     Node *current = *start;
     Node *newnode = (Node *)malloc(sizeof(Node));
     newnode->data = value;
     newnode->next = NULL;
 
-    while (current != NULL) {
+    if ((*start)->data == insert_after_value) {
+        newnode->next = current->next;
+        current->next = newnode;
+        return;        
+    }
+    current = current->next;
+    while (current != header) {
         if (current->data == insert_after_value) {
             newnode->next = current->next;
             current->next = newnode;
@@ -53,16 +57,22 @@ void insert_node(Node **start, int insert_after_value, int value)
 
 void delete_node(Node **start, int value)
 {
+    Node *header = *start;
     Node *current = *start;
     Node *tmpnode = NULL;
 
-    if (current->data == value) {
-        *start = current->next;
-        free(current);
+    if ((*start)->data == value) {
+        tmpnode = *start;
+        while (current->next != header) {
+            current = current->next;
+        }
+        current->next = header->next;
+        free(tmpnode);
         return;
     }
 
-    while (current != NULL) {
+    current = current->next;
+    while (current != header) {
         if (current->next->data == value) {
             tmpnode = current->next;
             current->next = current->next->next;
@@ -71,33 +81,48 @@ void delete_node(Node **start, int value)
         }
         current = current->next;
     }
+
     return;
 }
 
 void print_list(Node *node)
 {
-    while (node != NULL) {
-        printf("%d ", node->data);
-        node = node->next;
+    Node *header = node;
+    Node *current = node;
+
+    printf("%d ", current->data);
+    current = current->next;
+    while (current != header) {
+        printf("%d ", current->data);
+        current = current->next;
     }
     printf("\n");
+    
     return;
 }
 
 void free_list(Node *node)
 {
-    Node *tmpnode = (Node *)malloc(sizeof(Node));;
+    Node *header = node;
+    Node *current = node;
+    Node *tmpnode = NULL;
 
-    while (node != NULL) {
-        tmpnode = node;
-        node = node->next;
+    tmpnode = current;
+    current = current->next;
+    free(tmpnode);
+
+    while (current != header) {
+        tmpnode = current;
+        current = current->next;
         free(tmpnode);
     }
+
     return;
 }
 
 int main(int argc, char *argv[])
 {
+    // create first node "head"
     Node *head = NULL;
     add_node(&head, 5);
     add_node(&head, 128);
@@ -122,5 +147,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-

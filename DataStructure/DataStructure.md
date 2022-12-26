@@ -7,6 +7,10 @@ If there is related infringement or violation of related regulations, please con
 
 # 目錄
 
+- [自我練習](#0)
+  - [單向鏈結串列](#0.1)
+  - [雙向鏈結串列](#0.2)
+  - [環狀鏈結串列](#0.3)
 - [指標教學](#1)
   - [(1) 何謂指標](#1.1)
   - [(2) 宣告指標變數](#1.2)
@@ -44,6 +48,14 @@ If there is related infringement or violation of related regulations, please con
 <h2 id="0.1">單向鏈結串列</h2>
 
 [SingleListNode.c](./SingleListNode.c)
+
+<h2 id="0.2">雙向鏈結串列</h2>
+
+[DualListNode.c](./DualListNode.c)
+
+<h2 id="0.3">環狀鏈結串列</h2>
+
+[CircularListNode.c](./CircularListNode.c)
 
 <h1 id="1">指標教學</h1>
 
