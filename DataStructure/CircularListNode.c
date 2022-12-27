@@ -7,6 +7,12 @@ typedef struct node
     struct node *next;
 }Node, *ListNode;
 
+void add_node(Node **start, int value);
+void insert_node(Node **start, int insert_after_value, int value);
+void delete_node(Node **start, int value);
+void print_list(Node *node);
+void free_list(Node *node);
+
 void add_node(Node **start, int value)
 {
     Node *header = *start;
@@ -61,17 +67,17 @@ void delete_node(Node **start, int value)
     Node *current = *start;
     Node *tmpnode = NULL;
 
-    if ((*start)->data == value) {
+    if (current->data == value) {
         tmpnode = *start;
+        *start = current->next;
         while (current->next != header) {
             current = current->next;
         }
-        current->next = header->next;
+        current->next = *start;
         free(tmpnode);
         return;
     }
 
-    current = current->next;
     while (current != header) {
         if (current->next->data == value) {
             tmpnode = current->next;
