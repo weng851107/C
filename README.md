@@ -24,6 +24,7 @@ If there is related infringement or violation of related regulations, please con
   - [getchar應用](#4.2)
   - [exit() & return](#4.3)
   - [sizeof() & strlen()](#4.4)
+  - [實現不同log等級設置](#4.5)
 - [Linux C](#5)
   - [命令行選項解析函數 getopt() & getopt_long()](#5.1)
   - [計算時間差 gettimeofday()](#5.2)
@@ -45,6 +46,7 @@ If there is related infringement or violation of related regulations, please con
   - [Linux下的定時器：alarm()與setitimer()](#5.8)
   - [fork & vfork()](#5.9)
   - [exec函數族](#5.10)
+  - [alias + weak](#5.11)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -407,6 +409,65 @@ char b [ ] = { 'h','e','l','l','o'};    /*數組b定義了一個字符數組*/
 - strlen是求字符串的長度，字符串有個默認的結束符/0, 這個結束符是在定義字符串的時候系統自動加上去的，就像定義數組a一樣
 - 數組b定義了一個字符數組，因為strlen找不到結束符，所以strlen(b)的長度就不確定的
 
+<h2 id="4.5">實現不同log等級設置</h2>
+
+可以透過巨集來控制不同等級log的訊息，根據使用情況來進行切換
+
+```C
+#include <stdio.h>
+#include <stdarg.h>
+
+#define ERR_LEVEL       1
+#define WARN_LEVEL      2
+#define INFO_LEVEL      3
+
+#define DEBUG_LEVEL     3   /*log level setting*/
+/*
+ *  0: 關閉
+ *  1: 只打印錯誤信息
+ *  2: 打印警告與錯誤信息
+ *  3: 打印全部信息
+*/
+
+void __attribute__((format(printf, 1, 2)))  INFO(char *fmt, ...)
+{
+#if (DEBUG_LEVEL >= INFO_LEVEL)
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+#endif
+}
+
+void __attribute__((format(printf, 1, 2)))  WARN(char *fmt, ...)
+{
+#if (DEBUG_LEVEL >= WARN_LEVEL)
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+#endif
+}
+
+void __attribute__((format(printf, 1, 2)))  ERR(char *fmt, ...)
+{
+#if (DEBUG_LEVEL >= ERR_LEVEL)
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+#endif
+}
+
+int main(void)
+{
+    ERR("ERR log level: %d\n", ERR_LEVEL);
+    WARN("WARN log level: %d\n", WARN_LEVEL);
+    INFO("INFO log level: %d\n", INFO_LEVEL);
+
+    return 0;
+}
+```
 
 <h1 id="5">Linux C</h1>
 
@@ -2869,6 +2930,38 @@ int main(int argc, char *argv[])
     }
 }
 ```
+
+<h2 id="5.11">alias + weak</h2>
+
+alias：給函數定義一個別名
+
+weak：當連結器找不到此函數的定義時，並不會報錯，編譯器會把此函數名設置為0或一個特殊值。只有當程序運行調用到此函數時，轉跳到零地址或是特殊地址才會報錯，產生內存錯誤
+
+在Linux內核中，透過alias與weak的搭配，當某些函數隨著內核版本升級，函數接口發生變化時，可以透過alias對舊的接口進行封裝
+
+```C
+/*f.c*/
+void __f(void)
+{
+    printf("__f()\n");
+}
+
+void f() __attribute__((weak, alias("__f")));
+
+/*main.c*/
+void __attribute__((weak)) f(void)
+{
+    printf("f()\n");
+}
+
+int main(void)
+{
+    f();
+    return 0;
+}
+```
+
+- 當main.c有定義f()時，會調用main.c的f()，否則調用f.c中的__f()
 
 <h1 id="6">C Standard Library</h1>
 
