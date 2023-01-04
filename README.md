@@ -57,6 +57,7 @@ If there is related infringement or violation of related regulations, please con
     - [Formatted input/output](#6.3.1)
       - [printf(), fprintf(), sprintf(), snprintf() 相關用法](#6.3.1.1)
       - [scanf(), sscanf(), fscanf() 相關用法](#6.3.1.2)
+      - [vprintf(), vfprintf() 相關用法](#6.3.1.3)
     - [Character input/output](#6.3.2)
       - [getc(), fgetc(), getchar(), gets(), fgets() 相關用法](#6.3.2.1)
       - [putc(), fputc(), putchar(), puts(), fputs() 相關用法](#6.3.2.2)
@@ -69,6 +70,7 @@ If there is related infringement or violation of related regulations, please con
     - [memset() - Fill block of memory](#6.4.5)
     - [strlen() - Get string length](#6.4.6)
   - [assert.h - assert()](#6.5)
+  - [stdarg.h - va_list](#6.6)
 - [Json](#7)
   - [安裝 json-c library](#7.1)
   - [Function](#7.2)
@@ -3447,6 +3449,91 @@ Hello
     ******************************/
     ```
 
+<h4 id="6.3.1.3">vprintf(), vfprintf() 相關用法</h4>
+
+**vprintf()**
+
+- Print formatted data from variable argument list to stdout
+
+- `int vprintf ( const char * format, va_list arg );`
+  - format：這是字符串
+  - arg：一個表示可變參數列表的對象。這應被\<stdarg.h\> 中定義的va_start 宏初始化
+
+- 格式字符串參數：[參考](https://www.runoob.com/cprogramming/c-function-vprintf.html)
+
+```C
+/* vprintf example */
+#include <stdio.h>
+#include <stdarg.h>
+
+void WriteFormatted ( const char * format, ... )
+{
+    va_list args;
+    va_start (args, format);
+    vprintf (format, args);
+    va_end (args);
+}
+
+int main ()
+{
+    WriteFormatted ("Call with %d variable argument.\n",1);
+    WriteFormatted ("Call with %d variable %s.\n",2,"arguments");
+
+    return 0;
+}
+
+/***********************************
+Call with 1 variable argument.
+Call with 2 variable arguments.
+************************************/
+```
+
+**vfprintf()**
+
+- Write formatted data from variable argument list to stream
+
+- `int vfprintf ( FILE * stream, const char * format, va_list arg );`
+  - stream：這是指向FILE 對象的指針，該FILE 對象標識了流
+  - format：這是字符串
+  - arg：一個表示可變參數列表的對象。這應被\<stdarg.h\> 中定義的va_start 宏初始化
+
+- 格式字符串參數：[參考](https://www.runoob.com/cprogramming/c-function-vfprintf.html)
+
+```C
+/* vfprintf example */
+#include <stdio.h>
+#include <stdarg.h>
+
+void WriteFormatted (FILE * stream, const char * format, ...)
+{
+    va_list args;
+    va_start (args, format);
+    vfprintf (stream, format, args);
+    va_end (args);
+}
+
+int main ()
+{
+    FILE * pFile;
+
+    pFile = fopen ("myfile.txt","w");
+
+    WriteFormatted (pFile,"Call with %d variable argument.\n",1);
+    WriteFormatted (pFile,"Call with %d variable %s.\n",2,"arguments");
+
+    fclose (pFile);
+
+    return 0;
+}
+
+/********************************************
+$ cat myfile.txt
+Call with 1 variable argument. 
+
+Call with 2 variable arguments.
+*********************************************/
+```
+
 <h3 id="6.3.2">Character input/output</h3>
 
 https://cplusplus.com/reference/cstdio/#:~:text=Character%20input/output
@@ -4388,7 +4475,134 @@ The sentence entered is 12 characters long.
     ************************************/
     ```
 
+<h2 id="6.6">stdarg.h - va_list</h2>
 
+定義了一個變量類型va_list和三個巨集，用於在參數個數未知（即參數個數可變）時獲取函數中的參數
+
+可變參數的函數在參數列表的末尾是使用省略號(,...)定義的
+
+`void va_start(va_list ap, last_arg)`
+
+- 初始化 ap 變量，它與 va_arg 和 va_end 宏是一起使用的。 last_arg 是最後一個傳遞給函數的已知的固定參數，即省略號之前的參數
+- ap：這是一個 va_list 類型的對象，它用來存儲通過 va_arg 獲取額外參數時所必需的信息
+- last_arg：最後一個傳遞給函數的已知的固定參數
+
+`type va_arg(va_list ap, type)`
+
+- 檢索函數參數列表中類型為type的下一個參數
+- ap：這是一個va_list類型的對象，存儲了有關額外參數和檢索狀態的信息
+- type：這是一個類型名稱
+
+`void va_end ( va_list ap )`
+
+- End using variable argument list
+
+Example1
+
+```C
+/* va_start example */
+#include <stdio.h>      /* printf */
+#include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
+
+void PrintFloats (int n, ...)
+{
+    int i;
+    double val;
+    printf ("Printing floats:");
+    va_list vl;
+    va_start(vl,n);
+    for (i=0;i<n;i++)
+    {
+    val=va_arg(vl,double);
+    printf (" [%.2f]",val);
+    }
+    va_end(vl);
+    printf ("\n");
+}
+
+int main ()
+{
+    PrintFloats (3,3.14159,2.71828,1.41421);
+    return 0;
+}
+
+/**************************************
+Printing floats: [3.14] [2.72] [1.41]
+***************************************/
+```
+
+Example2
+
+```C
+/* va_arg example */
+#include <stdio.h>      /* printf */
+#include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
+
+int FindMax (int n, ...)
+{
+    int i,val,largest;
+    va_list vl;
+    va_start(vl,n);
+    largest=va_arg(vl,int);
+    for (i=1;i<n;i++)
+    {
+    val=va_arg(vl,int);
+    largest=(largest>val)?largest:val;
+    }
+    va_end(vl);
+    return largest;
+}
+
+int main ()
+{
+    int m;
+    m= FindMax (7,702,422,631,834,892,104,772);
+    printf ("The largest value is: %d\n",m);
+    return 0;
+}
+
+/*********************************************
+The largest value is: 892
+**********************************************/
+```
+
+Example3
+
+```C
+/* va_end example */
+#include <stdio.h>      /* puts */
+#include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
+
+void PrintLines (char* first, ...)
+{
+    char* str;
+    va_list vl;
+
+    str=first;
+
+    va_start(vl,first);
+
+    do {
+    puts(str);
+    str=va_arg(vl,char*);
+    } while (str!=NULL);
+
+    va_end(vl);
+}
+
+int main ()
+{
+    PrintLines ("First","Second","Third","Fourth",NULL);
+    return 0;
+}
+
+/************************************
+First
+Second
+Third
+Fourth
+*************************************/
+```
 
 <h1 id="7">Json</h1>
 
