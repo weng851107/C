@@ -47,6 +47,9 @@ If there is related infringement or violation of related regulations, please con
   - [fork & vfork()](#5.9)
   - [exec函數族](#5.10)
   - [alias + weak](#5.11)
+  - [內聯函數(inline)](#5.12)
+  - [內建函數](#5.13)
+  - [Linux內核使用的 likely 與 unlikely](#5.14)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -2963,6 +2966,93 @@ int main(void)
 
 - 當main.c有定義f()時，會調用main.c的f()，否則調用f.c中的__f()
 
+<h2 id="5.12">內聯函數(inline)</h2>
+
+內聯函數一般前面會有 `static` 和 `extern` 修飾
+
+大量的inline函數通常都會定義在header file中，且用static修飾
+
+- 因此任何想使用inline函數都不用再定義，只需include header file
+- 當src.c中包含的多個header都包含此inline函數的定義的話，會產生重定義錯誤，因此透過static將其限制在各自文件中
+
+
+inline只是建議編譯器在編譯時內聯展開
+register只是建議編譯器在為變量分配儲存空間時，將變量放到暫存器中
+
+GCC編譯器一般不會對函數作inline，只有編譯器優化等級到 `-O2` 以上才有可能會操作
+
+指定開啟或關閉：
+
+```C
+static inline __attribute__((noinline)) int func();
+static inline __attribute__((always_inline)) int func();
+```
+
+inline與macro的用途相似，用來減少冗長的程式碼，但inline比起macro有下列好處：
+
+- 函數支持參數類型檢查
+- 函數支持調試
+- 函數有回傳值，但macro可利用語句表達式來取得回傳值
+- 函數支持對接口封裝
+
+<h2 id="5.13">內建函數</h2>
+
+編譯器內部實現的函數，和關鍵字一樣可以直接調用，無須聲明
+
+通常以 `__builtin` 作為開頭
+
+```C
+__builtin_return_address(LEVEL)
+```
+
+- 用來返回當前函數會調用者的返回地址
+- LEVEL:
+  - 0: 獲取當前函數的返回地址
+  - 1: 獲取上一級函數的返回地址
+  - 2: 獲取上二級函數的返回地址
+
+```C
+__builtin_frame_address(LEVEL)
+```
+
+- 函數每調用一次，都會把當前函數的相關資訊保存在棧中
+- 用來查看棧幀地址
+  - LEVEL = 0: 查看當前函數的棧幀地址
+  - LEVEL = 1: 查看上一級函數的棧幀地址
+
+GNU C編譯器內部，C標準庫的內建函數也實現一些與C標準庫函數類似的內建函數，不過前面多了 `__builtin` 的前綴
+
+```C
+__builtin_constant_p(n)
+```
+
+- 判斷n在編譯時是否為常數
+- 常數返回1，否則返回0
+
+```C
+__builtin_expect(exp, c)
+```
+
+- 用於編譯器的分支預測優化
+- 參數exp的值為c的可能性很大
+- 但c與函數的返回值無關，函數的返回值永遠都是exp
+
+<h2 id="5.14">Linux內核使用的 likely 與 unlikely</h2>
+
+透過內建函數 `__builtin_expect(exp, c)` 定義的兩個macro
+
+- 用來告訴編譯器某個分支發生的機率很高或很低
+- 用於分支預測的優化
+- 對macro的參數作兩次非操作，是為了將參數轉為bool類型，然後作與1和0作比較 
+
+```C
+/*被修飾的if分支，代表該發生機率極高*/
+#define likely(x)       __builtin_expect(!!(x), 1)
+
+/*被修飾的if分支，代表該發生機率極低*/
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+```
+
 <h1 id="6">C Standard Library</h1>
 
 <h2 id="6.1">time.h</h2>
@@ -3004,8 +3094,6 @@ Formatted date & time : |11:20:39|
 ```
 
 <h2 id="6.2">stdlib.h</h2>
-
-
 
 <h3 id="6.2.1">Dynamic memory management</h3>
 
