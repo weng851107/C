@@ -14,7 +14,8 @@ If there is related infringement or violation of related regulations, please con
   - [2~32進位線上轉換器(含浮點數)](#0.4)
   - [網頁資訊](#0.5)
 - [A ‘C’ Test: The 0x10 Best Questions for Would-be Embedded Programmers](#1)
-- [Data Structure](#2)
+- [Knowledge](#2)
+  - [Data Structure](#2.1)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -138,9 +139,141 @@ http://www.speedfly.cn/tools/hexconvert/
 
 - 中文參考網址 [C語言測試 應知道的0x10個基本問題](https://creteken.pixnet.net/blog/post/24524138)
 
-<h1 id="2">Data Structure</h1>
+<h1 id="2">Knowledge</h1>
+
+<h2 id="2.1">Data Structure</h2>
 
 [DataStructure.md](./DataStructure/DataStructure.md)
+
+<h2 id="2.2">Interview Questions</h2>
+
+#### [What is the difference between declaration and definition of a variable/function]
+
+- The main difference between declaration and definition in C is that declaration of a variable indicates the compiler of the existence of a variable, while the definition of a variable indicates the compiler where and how much storage to create for a variable.
+
+#### [What are different storage class specifiers in C?]
+
+- `auto`, `register`, `static`, `extern`
+
+#### [What is scope of a variable? How are variables scoped in C?]
+
+- Scope = Lifetime
+
+- A block or a region where a variable is declared, defined and used and when a block or a region ends, variable is automatically destroyed.
+
+    ![IQ_img00](./image/InterviewQuestion/IQ_img00.PNG)
+
+#### [How will you print “Hello World” without semicolon?]
+
+```C
+#include <stdio.h>
+int main(void)
+{
+    if (printf("Hello World")) {
+    }
+}
+```
+
+#### [When should we use pointers in a C program?]
+
+1. To **get address** of a variable
+2. For achieving **pass by reference** in C: Pointers allow different functions to share and modify their local variables.
+3. To pass large structures so that complete copy of the structure can be avoided.
+4. To implement “linked” data structures like linked lists and binary trees.
+
+#### [What is NULL pointer?]
+
+- `NULL` is used to indicate that the pointer doesn’t point to a valid location.
+- We should initialize pointers as `NULL` if we don’t know their value at the time of declaration.
+- Make a pointer NULL when memory pointed by it is deallocated in the middle of a program.
+
+#### [What is Dangling pointer?]
+
+- Dangling Pointer is a pointer that doesn’t point to a valid memory location. Dangling pointers arise when an object is deleted or deallocated, without modifying the value of the pointer, so that the pointer still points to the memory location of the deallocated memory.
+
+    ```C
+    // EXAMPLE 1
+    int* ptr = (int*)malloc(sizeof(int));
+    ..........................free(ptr);
+    
+    // ptr is a dangling pointer now and operations like following are invalid
+    *ptr = 10; // or printf("%d", *ptr);
+    ```
+
+    ```C
+    // EXAMPLE 2
+    int* ptr = NULL
+    {
+        int x = 10;
+        ptr = &x;
+    }
+    // x goes out of scope and memory allocated to x is free now.
+    // So ptr is a dangling pointer now.
+    ```
+
+#### [What is memory leak? Why it should be avoided]
+
+- Memory leak occurs when programmers create a memory in heap and forget to delete it. Memory leaks are particularly serious issues for programs like daemons and servers which by definition never terminate.
+
+    ```C
+    /* Function with memory leak */
+    #include <stdlib.h>
+    
+    void f()
+    {
+        int* ptr = (int*)malloc(sizeof(int));
+    
+        /* Do some work */
+    
+        return; /* Return without freeing ptr*/
+    }
+    ```
+
+#### [What are local static variables? What is their use?]
+
+- A local static variable is a variable whose lifetime doesn’t end with a function call where it is declared. It extends for the lifetime of complete program. All calls to the function share the same copy of local static variables. Static variables can be used to count the number of times a function is called. Also, static variables get the default value as 0.
+
+    ```C
+    #include <stdio.h>
+    void fun()
+    {
+        // static variables get the default value as 0.
+        static int x;
+        printf("%d ", x);
+        x = x + 1;
+    }
+    
+    int main()
+    {
+        fun();
+        fun();
+        return 0;
+    }
+    // Output: 0 1
+    ```
+
+#### [What are static functions? What is their use?]
+
+- Functions are global by default in C.
+- Access to static functions is restricted to the file where they are declared in C.
+- Make functions static can be reuse of the same function name in other files.
+
+#### [What are main characteristics of C language? ]
+
+- C is a procedural language. 
+- The main features of C language include low-level access to memory, simple set of keywords, and clean style. 
+- These features make it suitable for system programming like operating system or compiler development. 
+
+#### [What is difference between i++ and ++i? ]
+
+- The expression `i++` returns the old value and then increments i. 
+- The expression `++i` increments the value and returns new value. 
+
+
+
+
+
+
 
 <h1 id="3">VT100</h1>
 
