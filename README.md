@@ -16,6 +16,7 @@ If there is related infringement or violation of related regulations, please con
 - [A ‘C’ Test: The 0x10 Best Questions for Would-be Embedded Programmers](#1)
 - [Knowledge](#2)
   - [Data Structure](#2.1)
+  - [Interview Questions](#2.2)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -258,22 +259,267 @@ int main(void)
 - Access to static functions is restricted to the file where they are declared in C.
 - Make functions static can be reuse of the same function name in other files.
 
-#### [What are main characteristics of C language? ]
+#### [What are main characteristics of C language?]
 
 - C is a procedural language. 
 - The main features of C language include low-level access to memory, simple set of keywords, and clean style. 
 - These features make it suitable for system programming like operating system or compiler development. 
 
-#### [What is difference between i++ and ++i? ]
+#### [What is difference between i++ and ++i?]
 
 - The expression `i++` returns the old value and then increments i. 
 - The expression `++i` increments the value and returns new value. 
 
+#### [What is l-value?]
+
+- l-value or location value refers to an expression that can be used on left side of assignment operator.
+
+- l-values are of two types:
+  - const variables are “nonmodifiable l-value”, which represent a l-value that can not be modified.
+  - “modifiable l-value” represent a l-value that can be modified.
+
+#### [What is the difference between array and pointer?]
+
+- Pointers are used for storing address of dynamically allocated arrays and for arrays which are passed as arguments to functions.
+
+- Behavior of sizeof operator 
+
+    ```C
+    #include <stdio.h>
+    
+    int main()
+    {
+        int arr[] = { 10, 20, 30, 40, 50, 60 };
+        int* ptr = arr;
+
+        // sizof(int) * (number of element in arr[]) is printed
+        printf("Size of arr[] %ld\n", sizeof(arr));
+
+        // sizeof a pointer is printed which is same for all
+        // type of pointers (char *, void *, etc)
+        printf("Size of ptr %ld", sizeof(ptr));
+        return 0;
+    }
+
+    /****************************************
+    Size of arr[] 24
+    Size of ptr 8
+    *****************************************/
+    ```
+
+- Assigning any address to an array variable is not allowed.
+
+    ```C
+    #include <stdio.h>
+    
+    int main()
+    {
+        int arr[] = {10, 20}, x = 10;
+        int *ptr = &x; // This is fine
+        arr = &x;  // Compiler Error
+        return 0;
+    }
+    ```
+
+Although array and pointer are different things, following properties of array make them look similar. 
+
+- Array name gives address of first element of array.
+
+    ```C
+    #include <stdio.h>
+    int main()
+    {
+        int arr[] = { 10, 20, 30, 40, 50, 60 };
+        // Assigns address of array to ptr
+        int* ptr = arr;
+        printf("Value of first element is %d", *ptr);
+        return 0;
+    }
+    ```
+
+- Array members are accessed using pointer arithmetic. 
+
+    ```C
+    #include <stdio.h>
+    
+    int main()
+    {
+        int arr[] = {10, 20, 30, 40, 50, 60};
+        int *ptr = arr;
+        printf("arr[2] = %d\n", arr[2]);
+        printf("*(arr + 2) = %d\n", *(arr + 2));
+        printf("ptr[2] = %d\n", ptr[2]);
+        printf("*(ptr + 2) = %d\n", *(ptr + 2));
+        return 0;
+    }
+
+    /*******************************************
+    arr[2] = 30
+    *(arr + 2) = 30
+    ptr[2] = 30
+    *(ptr + 2) = 30
+    ********************************************/
+    ```
+
+- Array parameters are always passed as pointers, even when we use square brackets. 
+
+    ```C
+    #include <stdio.h>
+    
+    int fun(int ptr[])
+    {
+        int x = 10;
+
+        // size of a pointer is printed
+        printf("sizeof(ptr) = %d\n", (int)sizeof(*ptr));
+
+        // This allowed because ptr is a pointer, not array
+        ptr = &x;
+
+        printf("*ptr = %d ", *ptr);
+
+        return 0;
+    }
+    
+    // Driver code
+    int main()
+    {
+        int arr[] = { 10, 20, 30, 40, 50, 60 };
+            
+        // size of a array is printed
+        printf("sizeof(arr) = %d\n", (int)sizeof(arr));
+        fun(arr);
+        return 0;
+    }
+
+    /**********************************
+    sizeof(arr) = 24
+    sizeof(ptr) = 4
+    *ptr = 10 
+    ***********************************/
+    ```
+
+#### [How to write your own sizeof operator?]
+
+```C
+#define my_sizeof(type) (char *)(&type+1)-(char*)(&type)
+```
+
+#### [How will you print numbers from 1 to 100 without using loop?]
+
+- Use recursion for this purpose.
+
+```C
+/* Prints numbers from 1 to n */
+void printNos(unsigned int n)
+{
+    if(n > 0)
+    {
+        printNos(n-1);
+        printf("%d ",  n);
+    }
+}
+```
+
+#### [What is volatile keyword?]
+
+- The volatile keyword is intended to prevent the compiler from applying any optimizations on objects that can change in ways that cannot be determined by the compiler.
+
+#### [Can a variable be both const and volatile?]
+
+- yes, the const means that the variable cannot be assigned a new value. The value can be changed by other code or pointer.
+
+```C
+#include <stdio.h>
+int main(void)
+{
+    const volatile int local = 10;
+    int* ptr = (int*)&local;
+    printf("Initial value of local : %d \n", local);
+    *ptr = 100;
+    printf("Modified value of local: %d \n", local);
+    return 0;
+}
+
+/**************************************************
+Initial value of local : 10
+Modified value of local: 100
+***************************************************/
+```
+
+#### [Write down the smallest executable code?]
+
+- `main` is necessary for executing the code.
+
+    ```C
+    void main()
+    {
+    }
+    ```
+
+#### [What are entry control and exit control loops?]
+
+- Entry Control:
+  - while loop
+  - for loop
+
+- Exit control:
+  - do while loop.
 
 
+#### [Why pre-processor directive does not have a semi-colon at last?]
 
+- Semi-colon is needed by the compiler and as the name suggests Preprocessors are programs that process our source code before compilation. Therefore the semi-colon is not required.
 
+#### [What is the difference between including the header file with-in angular braces < > and double quotes " "?]
 
+- If a header file is included within `< >` then the compiler searches for the particular header file only within the built-in include path.
+- If a header file is included within `" "`, then the compiler searches for the particular header file first in the current working directory, if not found then in the built-in include path.
+
+#### [What are stack and heap areas?]
+
+- **Heap Area**:It is used for the objects allocated dynamically (Using `malloc()` and `calloc()`).
+- **Stack Area**:It is used to store local variables and arguments of a method. This stays in memory only till the termination of that particular method.
+
+#### [Explain Deep Copy and Shallow Copy with examples?]
+
+- Shallow Copy：When we assign st1 to st2, str pointer of st2 also start pointing to same memory location. 
+
+    ```C
+    # include <stdio.h>
+    # include <string.h>
+    # include <stdlib.h>
+    
+    struct test
+    {
+    char *str;
+    };
+    
+    int main()
+    {
+        struct test st1, st2;
+        st1.str = (char *)malloc(sizeof(char) * 20);
+
+        strcpy(st1.str, "GeeksforGeeks");
+
+        st2 = st1;
+        st1.str[0] = 'X';
+        st1.str[1] = 'Y';
+
+        /* Since copy was shallow, both strings are same */
+        printf("st1's str = %s\n", st1.str);
+        printf("st2's str = %s\n", st2.str);
+
+        return 0;
+    }
+
+    /*****************************************
+    st1's str = XYeksforGeeks
+    st2's str = XYeksforGeeks
+    ******************************************/
+    ```
+
+- Deep Copy：we allocate new memory for dynamically allocated members and explicitly copy them.
 
 <h1 id="3">VT100</h1>
 
