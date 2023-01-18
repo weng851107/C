@@ -27,7 +27,7 @@ If there is related infringement or violation of related regulations, please con
   - [exit() & return](#4.3)
   - [sizeof() & strlen()](#4.4)
   - [實現不同log等級設置](#4.5)
-- [Linux C](#5)
+- [Linux C (GNU C stardard)](#5)
   - [命令行選項解析函數 getopt() & getopt_long()](#5.1)
   - [計算時間差 gettimeofday()](#5.2)
   - [FileOperation](#5.3)
@@ -52,6 +52,7 @@ If there is related infringement or violation of related regulations, please con
   - [內聯函數(inline)](#5.12)
   - [內建函數](#5.13)
   - [Linux內核使用的 likely 與 unlikely](#5.14)
+  - [可變參數宏(巨集, Micro)](#5.15)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -851,7 +852,7 @@ int main(void)
 }
 ```
 
-<h1 id="5">Linux C</h1>
+<h1 id="5">Linux C (GNU C stardard)</h1>
 
 <h2 id="5.1">命令行選項解析函數 getopt() & getopt_long()</h2>
 
@@ -3432,6 +3433,94 @@ __builtin_expect(exp, c)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 ```
 
+<h2 id="5.15">可變參數宏(巨集, Micro)</h2>
+
+GNU C標準才有支持此功能
+
+透過可變參數宏可以較簡單地實現與可變參數函數(va_list, va_start, va_end)相同的功用
+
+```C
+#include <stdio.h>
+
+#define LOG(fmt, ...)   printf(fmt, ##__VA_ARGS__)
+
+int main()
+{
+    LOG("hello\n");
+    LOG("hello %s\n", "Antony");
+    LOG("hello %s %s, There are %d persons\n", "Antony", "Celine", 2);
+
+    return 0;
+}
+
+/****************************************
+hello
+hello Antony
+hello Antony Celine, There are 2 persons
+*****************************************/
+```
+
+- `...` 表示 可變參數列表
+- `__VA_ARGS__` 為預定義標識符，用來表示前面的可變參數列表
+- `fmt` 通常為一個格式字符串，後面的可變參數用來打印各種格式的數據
+- `##` 為宏連接符，會將兩邊的字符合併，並刪除這個連接符##
+  - 當變參列表不為空時，`##` 用來連接 `fmt` 和 `變參列表`
+  - 當變參列表為空時，`##` 會將 `fmt` 後面的逗號刪除掉，使得宏可以正常使用
+
+### 內核中的可變參數宏
+
+宏定義採用 `do { ... } while(0)` 結構，用處在於防止宏在條件、選擇等分支結構的語句中展開後，產生宏歧異，即非預期的表現
+
+```C
+#include <stdio.h>
+
+#define DBG_PRINTF(fmt, args...)  \
+do  \
+{   \
+    printf("<<File:%s  Line:%d  Function:%s>> ", __FILE__, __LINE__, __FUNCTION__);     \
+    printf(fmt, ##args);    \
+}while(0)
+
+int main()
+{
+    DBG_PRINTF("Hi, %s\n", "Antony");
+    return 0;
+}
+
+/******************************************
+<<File:test.c  Line:12  Function:main>> Hi, Antony
+*******************************************/
+```
+
+### ANSI C預定義宏
+
+在編程中您可以使用這些宏，但是不能直接修改這些預定義的宏
+
+![LinuxC_img03](./image/LinuxC/LinuxC_img03.PNG)
+
+```C
+#include <stdio.h>
+
+int main()
+{
+    printf("File :%s\n", __FILE__ );	// 文件名
+    printf("Func :%s\n", __func__ );	// 函數名 
+    printf("Date :%s\n", __DATE__ );	// 当前日期
+    printf("Time :%s\n", __TIME__ );	// 当前时间
+    printf("Line :%d\n", __LINE__ );	// 当前行号
+    printf("ANSI :%d\n", __STDC__ );	// 当以ANSI编译时，定义为1
+    return 0;
+}
+/**************************************
+File :test.c
+Func :main
+Date :Jan 18 2023
+Time :08:28:44
+Line :9
+ANSI :1
+**************************************/
+```
+
 <h1 id="6">C Standard Library</h1>
 
 <h2 id="6.1">time.h</h2>
@@ -5073,8 +5162,8 @@ void PrintFloats (int n, ...)
     va_start(vl,n);
     for (i=0;i<n;i++)
     {
-    val=va_arg(vl,double);
-    printf (" [%.2f]",val);
+        val=va_arg(vl,double);
+        printf (" [%.2f]",val);
     }
     va_end(vl);
     printf ("\n");
