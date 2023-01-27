@@ -78,6 +78,7 @@ void delete_node(Node **start, int value)
         return;
     }
 
+    current = current->next;
     while (current != header) {
         if (current->next->data == value) {
             tmpnode = current->next;
