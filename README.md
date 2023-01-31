@@ -27,6 +27,7 @@ If there is related infringement or violation of related regulations, please con
   - [exit() & return](#4.3)
   - [sizeof() & strlen()](#4.4)
   - [實現不同log等級設置](#4.5)
+  - [#ifdef 與 #if defined 用法](#4.6)
 - [Linux C (GNU C stardard)](#5)
   - [命令行選項解析函數 getopt() & getopt_long()](#5.1)
   - [計算時間差 gettimeofday()](#5.2)
@@ -851,6 +852,62 @@ int main(void)
     return 0;
 }
 ```
+
+<h2 id="4.6">#ifdef 與 #if defined 用法</h2>
+
+[How to add a 'or' condition in #ifdef](https://stackoverflow.com/questions/2998864/how-to-add-a-or-condition-in-ifdef)
+
+`#ifdef` is a bit less typing, but doesn't work well with more complex conditions.
+
+`#if defined` is used for more complex conditions.
+
+- OR
+
+    ```C
+    #if defined CONDITION1 || defined CONDITION2
+        /*your code here*/
+    #endif
+
+    #if defined(CONDITION1) || defined(CONDITION2)
+        /*your code here*/
+    #endif
+    ```
+
+- AND
+
+    ```C
+    #if defined CONDITION1 && defined CONDITION2
+        /*your code here*/
+    #endif
+
+    #if defined(CONDITION1) && defined(CONDITION2)
+        /*your code here*/
+    #endif
+    ```
+
+- XOR
+
+    ```C
+    #if defined CONDITION1 ^ defined CONDITION2
+        /*your code here*/
+    #endif
+
+    #if defined(CONDITION1) ^ defined(CONDITION2)
+        /*your code here*/
+    #endif
+    ```
+
+- AND NOT
+
+    ```C
+    #if defined CONDITION1 && !defined CONDITION2
+        /*your code here*/
+    #endif
+
+    #if defined(CONDITION1) && !defined(CONDITION2)
+        /*your code here*/
+    #endif
+    ```
 
 <h1 id="5">Linux C (GNU C stardard)</h1>
 
