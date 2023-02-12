@@ -134,6 +134,10 @@ http://www.speedfly.cn/tools/hexconvert/
 
 [Windows, 用 VSCode 寫 C/C++ 教學](https://hackmd.io/@liaojason2/vscodecppwindows)
 
+<h2 id="0.6">[Book] Modern_C_Programming</h2>
+
+[Modern_C_Programming.pdf](./Modern_C_Programming/Modern_C_Programming.pdf)
+
 <h1 id="1">A ‘C’ Test: The 0x10 Best Questions for Would-be Embedded Programmers</h1>
 
 - [0x10.md](./0x10.md)
