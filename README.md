@@ -13,6 +13,7 @@ If there is related infringement or violation of related regulations, please con
   - [[直播公開課]韋東山老師嵌入式C語言加強](#0.3)
   - [2~32進位線上轉換器(含浮點數)](#0.4)
   - [網頁資訊](#0.5)
+  - [[Book] Modern_C_Programming](#0.6)
 - [A ‘C’ Test: The 0x10 Best Questions for Would-be Embedded Programmers](#1)
 - [Knowledge](#2)
   - [Data Structure](#2.1)
@@ -133,6 +134,8 @@ http://www.speedfly.cn/tools/hexconvert/
 <h2 id="0.5">網頁資訊</h2>
 
 [Windows, 用 VSCode 寫 C/C++ 教學](https://hackmd.io/@liaojason2/vscodecppwindows)
+
+[高等C語言](https://shengwen1997.gitbooks.io/program_with_c/content/index.html)
 
 <h2 id="0.6">[Book] Modern_C_Programming</h2>
 
