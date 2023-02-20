@@ -1331,6 +1331,10 @@ int open(const char * pathname, int flags, mode_t mode);
 
 - 開啟COM Port設備，以迴圈形式 Rx 並輸出到 stdout
 
+[uart_example.c](./code/Uart/uart_example.c)
+
+- Uart Example Base
+
 <h3 id="5.6.1">(linux c) struct termios</h3>
 
 [termios.h](./code/Uart/termios.h)
