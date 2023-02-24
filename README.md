@@ -29,6 +29,7 @@ If there is related infringement or violation of related regulations, please con
   - [sizeof() & strlen()](#4.4)
   - [實現不同log等級設置](#4.5)
   - [#ifdef 與 #if defined 用法](#4.6)
+  - [read/write bin-file & (EOF和feof 介紹)](#4.7)
 - [Linux C (GNU C stardard)](#5)
   - [命令行選項解析函數 getopt() & getopt_long()](#5.1)
   - [計算時間差 gettimeofday()](#5.2)
@@ -915,6 +916,141 @@ int main(void)
         /*your code here*/
     #endif
     ```
+
+<h2 id="4.7">read/write bin-file & (EOF和feof 介紹)</h2>
+
+[feof()多讀一次的解決方法](https://blog.csdn.net/woaisia/article/details/46441449)
+
+- EOF是不可輸出字符，因此不能在屏幕上顯示。由於字符的ASCII碼不可能出現-1，因此EOF定義為-1是合適的。當讀入的字符值等於EOF時，表示讀入的已不是正常的字符而是文件結束符，但這適用對文本文件的讀寫。
+
+- 在二進制文件中，信息都是以數值方式存在的。EOF的值可能就是所要處理的二進製文件中的信息。這就出現了需要讀入有用數據卻被處理為"文件結束"的情況。為了解決這個問題，C提供了一個feof()函數，可以用它來判斷文件是否結束
+
+- feof（fp）用於測試fp所指向的文件的當前狀態是否為“文件結束”。如果是，函數則返回的值是1（真），否則為0（假）
+
+二進制文件和文本文件的區別
+
+- C語言支持的是流式文件，它把文件看作由一個一個的字符（字節）數據組成的序列。根據*數據的組織*和*操作形式*，可以分為ASCII文件和二進制文件
+
+  - ASCII文件又稱為文本文件，它是在一個字節的存儲單元上存放一個字符（在外存中存放的是該字符的ASCII碼，每個字符將佔一個字節）
+  - 二進制文件是把內存中的數據按其在內存中的存儲格式在磁盤上原樣保存
+
+- 但是說EOF只能用於文本文件，其實不然，這點不是特別的準確，還要看定義的變量的類型
+
+  - 如果讀到了FF，由於c定義為int型，所以實際上c=0x000000FF，不等於EOF(-1=0xFFFFFFFF)，因此不會誤判為文件結尾。
+
+    ```C
+    int c;
+
+    while((c=fgetc(fp)) != EOF)
+    {
+        printf("%X/n", c); 
+    }
+    ```
+
+  - 但是如果把c定義為char類型，就有可能產生混淆，因為文本文件中存儲的是ASCII碼，而ASCII碼中FF代表空值(blank)，一般不使用，所以如果讀文件返回了FF，說明已經到了文本文件的結尾。但是如果是二進製文件，其中可能會包含FF，因此不能把讀到EOF作為文件結束的條件，此時只能用feof()函數
+
+    ```C
+    char c;
+
+    while((c=fgetc(fp)) != EOF)
+    {
+        printf("%X/n", c); 
+    }
+    ```
+
+在VC裡，只有當文件位置指針(fp－>_ptr)到了文件末尾，然後再發生讀/寫操作時，標誌位(fp->_flag)才會被置為含有_IOEOF。然後再調用feof()，才會得到文件結束的信息。
+
+- 如果運行如下程序，會發現多輸出了一個FF，原因就是在讀完最後一個字符後，fp->flag仍然沒有被置為_IOEOF，因而feof()仍然沒有探測到文件結尾。直到再次調用fgetc()執行讀操作，feof()才能探測到文件結尾。這樣就多輸出了一個-1(即FF)
+
+    ```C
+    char c;
+
+    while(!feof(fp))
+    {
+        c = fgetc(fp);
+        printf("%X/n", c); 
+    }
+    ```
+
+- 正確的寫法應該是：
+
+    ```C
+    char c;
+    c = fgetc(fp);
+    while(!feof(fp))
+    {
+        printf("%X/n", c); 
+        c = fgetc(fp);
+    } 
+    ```
+
+read/write bin-file
+
+```C
+static unsigned char *ReadBinFile(char *fwbinfile, unsigned long *fwlength)
+{
+    int ret = 0;
+    char c;
+    *fwlength = 0;
+    unsigned char *tmp_fwdata = NULL;
+    unsigned char *fwdata = NULL;
+
+    char* filename = fwbinfile;
+    FILE *fp = fopen(filename,"rb");
+    if(fp == NULL){
+        return NULL;
+    }
+
+    c = fgetc(fp);
+    while (!feof(fp)) {
+        (*fwlength)++;
+        tmp_fwdata = (unsigned char *)realloc(fwdata, (*fwlength)*sizeof(unsigned char));
+        if (tmp_fwdata != NULL) {
+            fwdata = tmp_fwdata;
+            fwdata[(*fwlength)-1] = c;
+        }
+        else {
+            printf("Error (re)allocating memory\n");
+            free(fwdata);
+            free(tmp_fwdata);
+            return NULL;
+        }
+        c = fgetc(fp);
+    }
+
+    /*It looks like that data exist '\0', so strlen doesn't work.*/
+    /*Thus, use ptr to return counter*/
+    fwdata = (unsigned char *)realloc(fwdata, ((*fwlength)+1)*sizeof(unsigned char));
+    fwdata[(*fwlength)] = '\0';
+
+    printf("The context of %s (length = %ld): \n", fwbinfile, *fwlength);
+    for (int i = 0; i < (*fwlength);i++) {
+        printf("%02x ", fwdata[i]);
+    }
+    printf("\n");
+
+    fclose(fp);
+    return fwdata;
+}
+
+static int WriteBinFile(char *fwbinfile, unsigned char *fwdata, unsigned fwlength)
+{
+    char* filename = fwbinfile;
+    FILE *fp = fopen(filename,"wb");
+    if(fp == NULL){
+        return -1;
+    }
+
+    for (long i = 0;i < fwlength;i++) {
+        fputc(fwdata[i], fp);
+    }
+
+    fclose(fp);
+
+    return 0;
+}
+```
+
 
 <h1 id="5">Linux C (GNU C stardard)</h1>
 
