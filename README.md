@@ -56,6 +56,7 @@ If there is related infringement or violation of related regulations, please con
   - [內建函數](#5.13)
   - [Linux內核使用的 likely 與 unlikely](#5.14)
   - [可變參數宏(巨集, Micro)](#5.15)
+  - [I2C 範例](#5.16)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -3724,6 +3725,23 @@ Line :9
 ANSI :1
 **************************************/
 ```
+
+<h2 id="5.16">I2C 範例</h2>
+
+透過 ioctl 把 slave address 和 data 寫進去，根據 address line 與 data line 的大小決定其傳送的長度
+
+- 寫: 先送 slave address 再送 data
+- 讀: 先送 slave address 再去讀之後的 data
+
+根據IC內的設計，是否有sequence write & read
+
+以 ioctl 的 i2c_lib 可參考如下
+
+- [i2c_lib.c](./code/I2C/i2c_lib.c), [i2c_lib.h](./code/I2C/i2c_lib.h)
+
+又透過 i2c_msg 包裝一層的 lib 可參考如下 (還有bug，但流程上如其所示)
+
+- [i2c_msg_lib.c](./code/I2C/i2c_msg_lib.c), [i2c_msg_lib.h](./code/I2C/i2c_msg_lib.h)
 
 <h1 id="6">C Standard Library</h1>
 
