@@ -1000,8 +1000,10 @@ static char *ReadBinFile(char *fwbinfile, unsigned long *fwlength, int logswitch
     char* filename = fwbinfile;
     FILE *fp = fopen(filename,"rb");
     if(fp == NULL){
+        printf("open file fail!\n");
         return NULL;
     }
+    printf("open file: %s\n", filename);
 
     c = fgetc(fp);
     while (!feof(fp)) {
@@ -1025,13 +1027,13 @@ static char *ReadBinFile(char *fwbinfile, unsigned long *fwlength, int logswitch
     fwdata = (char *)realloc(fwdata, ((*fwlength)+1)*sizeof(char));
     fwdata[(*fwlength)] = '\0';
 
-#ifdef logswitch
-    printf("The context of %s (length = %ld): \n", fwbinfile, *fwlength);
-    for (int i = 0; i < (*fwlength);i++) {
-        printf("%02x ", fwdata[i]);
+    if (logswitch) {
+        printf("The context of %s (length = %ld): \n", fwbinfile, *fwlength);
+        for (int i = 0; i < (*fwlength);i++) {
+            printf("%02x ", fwdata[i]);
+        }
+        printf("\n");
     }
-    printf("\n");
-#endif
 
     fclose(fp);
     return fwdata;
@@ -1045,8 +1047,10 @@ static char *ReadBinFile_v2(char *fwbinfile, unsigned long *fwlength, int logswi
     char* filename = fwbinfile;
     FILE *fp = fopen(filename,"rb");
     if(fp == NULL){
+        printf("open file fail!\n");
         return NULL;
     }
+    printf("open file: %s\n", filename);
 
     int position_start, position_end;
     fseek(fp, 0, SEEK_END);
@@ -1058,13 +1062,13 @@ static char *ReadBinFile_v2(char *fwbinfile, unsigned long *fwlength, int logswi
     char *fwdata = (char *)malloc((*fwlength)*sizeof(char));
     fread(fwdata, sizeof(char), (*fwlength), fp);
 
-#ifdef logswitch
-    printf("The context of %s (length = %ld): \n", fwbinfile, *fwlength);
-    for (int i = 0; i < (*fwlength);i++) {
-        printf("%#02x ", fwdata[i]);
+    if (logswitch) {
+        printf("The context of %s (length = %ld): \n", fwbinfile, *fwlength);
+        for (int i = 0; i < (*fwlength);i++) {
+            printf("%#02x ", fwdata[i]);
+        }
+        printf("\n");
     }
-    printf("\n");
-#endif
 
     fclose(fp);
     return fwdata;
