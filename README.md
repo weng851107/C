@@ -30,6 +30,7 @@ If there is related infringement or violation of related regulations, please con
   - [實現不同log等級設置](#4.5)
   - [#ifdef 與 #if defined 用法](#4.6)
   - [read/write bin-file & (EOF和feof 介紹)](#4.7)
+  - [a label can only be part of a statement and a declaration is not a statement” error](#4.8)
 - [Linux C (GNU C stardard)](#5)
   - [命令行選項解析函數 getopt() & getopt_long()](#5.1)
   - [計算時間差 gettimeofday()](#5.2)
@@ -988,13 +989,13 @@ int main(void)
 read/write bin-file
 
 ```C
-static unsigned char *ReadBinFile(char *fwbinfile, unsigned long *fwlength)
+static char *ReadBinFile(char *fwbinfile, unsigned long *fwlength, int logswitch)
 {
     int ret = 0;
     char c;
     *fwlength = 0;
-    unsigned char *tmp_fwdata = NULL;
-    unsigned char *fwdata = NULL;
+    char *tmp_fwdata = NULL;
+    char *fwdata = NULL;
 
     char* filename = fwbinfile;
     FILE *fp = fopen(filename,"rb");
@@ -1005,7 +1006,7 @@ static unsigned char *ReadBinFile(char *fwbinfile, unsigned long *fwlength)
     c = fgetc(fp);
     while (!feof(fp)) {
         (*fwlength)++;
-        tmp_fwdata = (unsigned char *)realloc(fwdata, (*fwlength)*sizeof(unsigned char));
+        tmp_fwdata = (char *)realloc(fwdata, (*fwlength)*sizeof(char));
         if (tmp_fwdata != NULL) {
             fwdata = tmp_fwdata;
             fwdata[(*fwlength)-1] = c;
@@ -1021,14 +1022,49 @@ static unsigned char *ReadBinFile(char *fwbinfile, unsigned long *fwlength)
 
     /*It looks like that data exist '\0', so strlen doesn't work.*/
     /*Thus, use ptr to return counter*/
-    fwdata = (unsigned char *)realloc(fwdata, ((*fwlength)+1)*sizeof(unsigned char));
+    fwdata = (char *)realloc(fwdata, ((*fwlength)+1)*sizeof(char));
     fwdata[(*fwlength)] = '\0';
 
+#ifdef logswitch
     printf("The context of %s (length = %ld): \n", fwbinfile, *fwlength);
     for (int i = 0; i < (*fwlength);i++) {
         printf("%02x ", fwdata[i]);
     }
     printf("\n");
+#endif
+
+    fclose(fp);
+    return fwdata;
+}
+
+static char *ReadBinFile_v2(char *fwbinfile, unsigned long *fwlength, int logswitch)
+{
+    int ret = 0;
+    *fwlength = 0;
+    
+    char* filename = fwbinfile;
+    FILE *fp = fopen(filename,"rb");
+    if(fp == NULL){
+        return NULL;
+    }
+
+    int position_start, position_end;
+    fseek(fp, 0, SEEK_END);
+    position_end = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    position_start = ftell(fp);
+    *fwlength = position_end - position_start;
+
+    char *fwdata = (char *)malloc((*fwlength)*sizeof(char));
+    fread(fwdata, sizeof(char), (*fwlength), fp);
+
+#ifdef logswitch
+    printf("The context of %s (length = %ld): \n", fwbinfile, *fwlength);
+    for (int i = 0; i < (*fwlength);i++) {
+        printf("%#02x ", fwdata[i]);
+    }
+    printf("\n");
+#endif
 
     fclose(fp);
     return fwdata;
@@ -1052,6 +1088,86 @@ static int WriteBinFile(char *fwbinfile, unsigned char *fwdata, unsigned fwlengt
 }
 ```
 
+<h2 id="4.8">a label can only be part of a statement and a declaration is not a statement” error</h2>
+
+https://www.educative.io/answers/resolving-the-a-label-can-only-be-part-of-a-statement-error
+
+The `a label can only be part of a statement and a declaration is not a statement` error occurs in C when it encounters a declaration immediately after a label.
+
+The C language standard only allows statements​ to follow a label.
+
+Code Example
+
+- goto label
+
+    ```C
+    /**
+     * Error 
+    */
+    #include<stdio.h>
+
+    int main() {
+        char * str1 = "hello";
+        goto Here;
+    
+    Here:
+        char * str2 = " world";
+        printf("%s %s", str1, str2);
+        return 0;
+    }
+
+
+    /**
+     * Fix the error 
+    */
+    #include<stdio.h>
+
+    int main() {
+        char * str1 = "hello";
+        goto Here;
+    
+    Here: ; // semi-colon added after the label.
+        char * str2 = " world";
+        printf("%s %s", str1, str2);
+        return 0;
+    }
+    ```
+
+- switch case
+
+    ```C
+    /**
+     * Error 
+    */
+    #include<stdio.h>
+
+    int main() {
+        char option = 'a';
+        switch (option)
+        {
+        case 'a':
+            char * str = "Case 'a' hit.";
+            printf("%s", str);
+            break;
+        }
+    }
+
+    /**
+     * Fix the error 
+    */
+    #include<stdio.h>
+
+    int main() {
+        char option = 'a';
+        switch (option)
+        {
+        case 'a': ;
+            char * str = "Case 'a' hit.";
+            printf("%s", str);
+            break;
+        }
+    }
+    ```
 
 <h1 id="5">Linux C (GNU C stardard)</h1>
 
