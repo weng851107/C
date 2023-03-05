@@ -3960,6 +3960,26 @@ https://cplusplus.com/reference/cstdlib/#:~:text=generator%20(function)-,Dynamic
     free(a);
     ```
 
+二維矩陣應用calloc & realloc
+
+- https://www.hackerrank.com/challenges/dynamic-array-in-c/problem?isFullScreen=true&h_r=next-challenge&h_v=zen
+
+    ```C
+    /*..................*/
+
+    total_number_of_books = (int *)calloc(total_number_of_shelves, sizeof(int));
+    total_number_of_pages = (int **)calloc(total_number_of_shelves, sizeof(int *));
+
+
+    /*......................*/
+
+        total_number_of_books[x]++;
+        total_number_of_pages[x] = realloc(total_number_of_pages[x], sizeof(int *) * total_number_of_books[x]);
+        total_number_of_pages[x][total_number_of_books[x] - 1] = y;
+
+    /*.....................*/
+    ```
+
 <h3 id="6.2.2">String conversion</h3>
 
 https://cplusplus.com/reference/cstdlib/#:~:text=Functions-,String%20conversion,-atof
