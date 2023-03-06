@@ -5271,6 +5271,58 @@ found R2A6
 **********************************/
 ```
 
+- strcmp()實際應用
+
+    https://www.hackerrank.com/challenges/sorting-array-of-strings/problem?isFullScreen=true
+
+    ```C
+    int lexicographic_sort(const char* a, const char* b) {
+        return strcmp(a, b);
+    }
+
+    int lexicographic_sort_reverse(const char* a, const char* b) {
+        return strcmp(b, a);
+    }
+
+    int sort_by_number_of_distinct_characters(const char* a, const char* b) {
+        int a_alpha[26] = {0};
+        int b_alpha[26] = {0};
+        int a_counter = 0;
+        int b_counter = 0;
+        for (int i = 0;i < strlen(a);i++) {
+            a_alpha[a[i]-97]++;
+        }
+        for (int i = 0;i < strlen(b);i++) {
+            b_alpha[b[i]-97]++;
+        }
+        for (int i = 0;i < 26;i++) {
+            if (a_alpha[i] != 0) {
+                a_counter++;
+            }
+            if (b_alpha[i] != 0) {
+                b_counter++;
+            }
+        }
+        return ((a_counter-b_counter) != 0)?(a_counter-b_counter):lexicographic_sort(a, b);
+    }
+
+    int sort_by_length(const char* a, const char* b) {
+        return (strlen(a)-strlen(b) != 0)?(strlen(a)-strlen(b)):lexicographic_sort(a, b);
+    }
+
+    void string_sort(char** arr,const int len,int (*cmp_func)(const char* a, const char* b)){
+        for (int i = 0;i < (len - 1);i++) {
+            for (int j = i+1;j < len;j++) {
+                if (cmp_func(arr[i], arr[j]) > 0) {
+                    char *tmp = arr[i];
+                    arr[i] = arr[j];
+                    arr[j] = tmp;
+                }            
+            }
+        }
+    }
+    ```
+
 <h3 id="6.4.4">Searching</h3>
 
 https://cplusplus.com/reference/cstring/#:~:text=locale%20(function)-,Searching,-%3A
