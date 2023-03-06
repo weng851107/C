@@ -31,6 +31,7 @@ If there is related infringement or violation of related regulations, please con
   - [#ifdef 與 #if defined 用法](#4.6)
   - [read/write bin-file & (EOF和feof 介紹)](#4.7)
   - [a label can only be part of a statement and a declaration is not a statement” error](#4.8)
+  - [將儲存binary data的txt轉換成bin-file](#4.9)
 - [Linux C (GNU C stardard)](#5)
   - [命令行選項解析函數 getopt() & getopt_long()](#5.1)
   - [計算時間差 gettimeofday()](#5.2)
@@ -1172,6 +1173,45 @@ Code Example
         }
     }
     ```
+
+<h2 id="4.9">將儲存binary data的txt轉換成bin-file</h2>
+
+http://king70327.blogspot.com/2016/12/ctxtbin-file.html
+
+```C
+unsigned long txt2bin(char *txtfile, char *binfile)
+{
+    unsigned long count = 0;
+    unsigned char OneByte;
+
+    FILE *FileIn = fopen(txtfile, "rt");
+    if (!FileIn) 
+    {
+        fclose(FileIn);
+        return -1;
+    }
+    
+    FILE* FileOut = fopen(binfile,"wb+");
+    if (!FileOut) 
+    {
+        fclose(FileOut);
+        return -2;
+    }
+
+    while ((fscanf(FileIn, "%hhx", &OneByte)) != EOF ) 
+    {
+        printf("%x ",OneByte);
+        //把讀取出來的資料寫入bin檔  
+        fwrite(&OneByte, sizeof(unsigned char), 1, FileOut);
+        count++;
+    }
+    printf("\n");
+
+    printf("count = %ld\n",count);
+    return count;
+}
+```
+
 
 <h1 id="5">Linux C (GNU C stardard)</h1>
 
