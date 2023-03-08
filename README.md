@@ -32,6 +32,7 @@ If there is related infringement or violation of related regulations, please con
   - [read/write bin-file & (EOF和feof 介紹)](#4.7)
   - [a label can only be part of a statement and a declaration is not a statement” error](#4.8)
   - [將儲存binary data的txt轉換成bin-file](#4.9)
+  - [函數回傳指標或局部變數矩陣的差異](#4.10)
 - [Linux C (GNU C stardard)](#5)
   - [命令行選項解析函數 getopt() & getopt_long()](#5.1)
   - [計算時間差 gettimeofday()](#5.2)
@@ -1211,6 +1212,98 @@ unsigned long txt2bin(char *txtfile, char *binfile)
     return count;
 }
 ```
+
+<h2 id="4.10">函數回傳指標或局部變數矩陣的差異</h2>
+
+第一種是在函數中創建一個局部數組來儲存兩個字串，最後回傳 --> Segmentation fault
+
+- my_strcat() 函式的變數s 從堆疊(stack) 自動配置記憶體，在函式結束時，s 已經被清除，回傳的值是垃圾值(junk value)，沒有實質意義
+
+    ```C
+    #include <assert.h>
+    #include <stddef.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    /* Useless string concat.*/
+    char * my_strcat(char [], char []);
+
+    int main()
+    {
+        char *s = my_strcat(
+        "Hello ", "World");
+        printf("%s\n", s);
+        return 0;
+    }
+
+    char * my_strcat(char a[], char b[])
+    {
+    /* `s` is a local variable. */
+        char s[256];
+        strcat(s, a);
+        strcat(s, b);
+        /* `s` is a junk value. */
+        return s;
+    }
+    ```
+
+第二種是在函數中動態配置空間後，儲存兩個字傳回傳 --> work
+
+- 由於我們從堆積(heap) 配置記憶體，在my_strcat() 函式結束時，記憶體不會清除，故程式可正常運作。只是主函式結束時要記得手動釋放記憶體
+
+    ```C
+    #include <assert.h>
+    #include <stddef.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    /* Useless string concat.*/
+    char * my_strcat(char [], char []);
+
+    int main()
+    {
+        char *s = my_strcat(
+        "Hello ", "World");
+        printf("%s\n", s);
+        return 0;
+    }
+
+    char * my_strcat(char a[], char b[])
+    {
+        size_t sz_a = strlen(a);
+        size_t sz_b = strlen(b);
+        size_t sz = sz_a + sz_b + 1;
+        char *s = (char *)calloc(sz, sizeof(char));
+        strcat(s, a);
+        strcat(s, b);
+        return s;
+    }
+
+    ```
+
+<h2 id="4.11">巨集的應用</h2>
+
+用巨集宣告定值
+
+- 陣列不能用變數初始化，但可以用巨集，因為在前處理器就會變轉換成實際數值
+
+    ```C
+    #define SIZE 10
+    ```
+
+用巨集宣告單行擬函數
+
+- 該巨集會代換為三元運算子，所以可以像函式般回傳值
+- 使用巨集寫擬函式的好處在於巨集是字串處理，不受到 C資料型態的限制。因此用巨集寫出來的擬函式可以模擬(較不安全的) 泛型程式。
+- 容易有意想不到的錯誤，要注意優先的運算子，或是加上()
+
+    ```C
+    #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+    ```
+
+用巨集宣告多行擬函數
 
 
 <h1 id="5">Linux C (GNU C stardard)</h1>
