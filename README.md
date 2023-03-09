@@ -1285,7 +1285,7 @@ unsigned long txt2bin(char *txtfile, char *binfile)
 
 <h2 id="4.11">巨集的應用</h2>
 
-用巨集宣告定值
+用巨集宣告**定值**
 
 - 陣列不能用變數初始化，但可以用巨集，因為在前處理器就會變轉換成實際數值
 
@@ -1293,18 +1293,158 @@ unsigned long txt2bin(char *txtfile, char *binfile)
     #define SIZE 10
     ```
 
-用巨集宣告單行擬函數
+用巨集宣告**單行擬函數**
 
 - 該巨集會代換為三元運算子，所以可以像函式般回傳值
 - 使用巨集寫擬函式的好處在於巨集是字串處理，不受到 C資料型態的限制。因此用巨集寫出來的擬函式可以模擬(較不安全的) 泛型程式。
-- 容易有意想不到的錯誤，要注意優先的運算子，或是加上()
+- 容易有意想不到的錯誤，導致改變變數的狀態，要注意優先的運算子，或是加上()
 
     ```C
     #define MAX(a, b) (((a) > (b)) ? (a) : (b))
     ```
 
-用巨集宣告多行擬函數
+用巨集宣告**多行擬函數**
 
+- 可以用來跨越多行，這時候就更像函式了
+
+    ```C
+    #define TIMES(count, block) { \
+        size_t i; \
+        for (i = 0; i < (count); ++i) { \
+        (block); \
+        } \
+    }
+
+    /*
+    TIMES(3, {printf("Hello World\n");});
+    */
+    ```
+
+從多行巨集取得回傳值
+
+- 巨集不是函式，無法用 return 敘述回傳值
+- 單行巨集算是表達式，巧妙地閃開了這個議題
+- 應對的方式是在巨集宣告中額外加入一個變數，把該變數當成「回傳值」
+- 在驅動程式中，通常這種多行巨集會加上 `do{}while(0);` 來進行保護
+
+    ```C
+    #include <assert.h>
+    #define FAC(n, out) { \
+        out = 1; \
+        unsigned i; \
+        for (i = 1; i <= (n); ++i) \
+            (out) = (out) * i; \
+    }
+
+    int main(void)
+    {
+        unsigned out;
+        /* Receive `out` from `FAC` the macro. */
+        FAC(5, out);
+        assert(120 == out);
+        return 0;
+    }
+    ```
+
+(無用) 用巨集創造語法
+
+- 在巨集重重包裝下，這個程式已經看不到原本的C 程式碼。這樣寫事後要除錯很很困難
+
+泛型型別巨集(C11)
+
+- 在此範例程式中，巨集log10 是一個利用泛型型別巨集宣告的擬函式。在我們帶入不同型別的參數時，該巨集會將參數導向適合該參數的型別的函式。藉由這種方式，達成泛型的效果。
+
+```C
+#define log10(x) _Generic((x), \
+    log double: log10l, \
+    float: log10f, \
+    default: log10)(x)
+```
+
+用巨集進行條件編譯
+
+- 利用這項特性保留所需的程式碼，去除不需要的程式碼
+
+1. 避免重覆引入標頭檔
+
+    ```C
+    #ifndef SOMETHING_H
+    #define SOMETHING_H
+    /* Declare some data types
+    and public functions. */
+    #endif /* SOMETHING_H */
+    ```
+
+   - 在使用#include guard 時，有微小的機會會發生巨集名稱衝突，替代的方式是在標頭檔第一行加入以下敘述 `#pragma once`
+
+2. 混合C 和C++ 程式碼
+
+   - extern "C" 敘述是C++ 的語法，用於混合C 和C++ 的專案
+   - __cplusplus 是C++ 編譯器中才會出現的巨集變數。使用C 編譯器去讀這段宣告時，不會出現extern "C" 敘述。使用C++ 編譯器時則會出現該敘述。
+
+    ```C
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    /* Some declarations. */
+    #ifdef __cplusplus
+    }
+    #endif
+    ```
+
+3. 偵測宿主系統
+
+   - 條件編譯也常用來偵測編譯程式時的系統環境
+   - 用條件編譯來決定PLATFORM_NAME 的值，但我們可以進一步用條件編譯篩選不同系統下的程式碼，撰寫跨平台程式碼。
+
+    ```C
+    #if defined(_WIN32)
+    #define PLATFORM_NAME "Windows"
+    #elif defined(__CYGWIN__) && !defined(_WIN32)
+    #define PLATFORM_NAME "Cygwin"
+    #elif defined(__linux__)
+    #define PLATFORM_NAME "GNU/Linux"
+    #elif defined(__APPLE__)
+    #define PLATFORM_NAME "Mac"
+    #elif defined(__unix__)
+    #define PLATFORM_NAME "Unix"
+    #else
+    #define PLATFORM_NAME "Other OS"
+    #endif
+    ```
+
+4. 註解掉一大段程式碼
+
+    ```C
+    #if 0
+    printf("It won't print\n");
+    #endif
+    ```
+
+5. 用條件編譯輔助除錯
+
+   - 當巨集DEBUG 為真時，會印出錯誤訊息。反之，則不會印出來。
+   - 在編譯C 程式碼時，可以在參數中開啟DEBUG 宣告，`gcc -DDEBUG -o file file.c`
+
+    ```C
+    #ifdef DEBUG
+    fprintf(stderr, "Some message\n");
+    #endif
+    ```
+
+預先定義的巨集： 這些訊息和程式本身的資訊相關
+
+- `__LINE__`：程式所在的行數
+- `__FILE__`：檔案名稱
+- `__DATE__`：前置處理器執行的日期
+- `__TIME__`：前置處理器執行的時間
+- `__STDC__`：確認某個編譯器是否有遵守C 標準
+- `__func__`：函式名稱(C99)
+
+巨集對於C 程式的意義
+
+- 由於巨集是字串代換，不會有函數呼叫的開銷。但同樣的程式碼區塊會反覆出現，使程式體積變大
+- 過度使用巨集會使得程式難以除錯，不建議為了優化程式刻意把函式改寫成巨集。
 
 <h1 id="5">Linux C (GNU C stardard)</h1>
 
