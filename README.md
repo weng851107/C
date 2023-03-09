@@ -27,12 +27,14 @@ If there is related infringement or violation of related regulations, please con
   - [getchar應用](#4.2)
   - [exit() & return](#4.3)
   - [sizeof() & strlen()](#4.4)
-  - [實現不同log等級設置](#4.5)
+  - [實現不同log等級設置 以及 利用巨集除錯的輸出](#4.5)
   - [#ifdef 與 #if defined 用法](#4.6)
   - [read/write bin-file & (EOF和feof 介紹)](#4.7)
   - [a label can only be part of a statement and a declaration is not a statement” error](#4.8)
   - [將儲存binary data的txt轉換成bin-file](#4.9)
   - [函數回傳指標或局部變數矩陣的差異](#4.10)
+  - [巨集的應用](#4.11)
+  - [指定範圍的隨機整數](#4.12)
 - [Linux C (GNU C stardard)](#5)
   - [命令行選項解析函數 getopt() & getopt_long()](#5.1)
   - [計算時間差 gettimeofday()](#5.2)
@@ -805,7 +807,7 @@ char b [ ] = { 'h','e','l','l','o'};    /*數組b定義了一個字符數組*/
 - strlen是求字符串的長度，字符串有個默認的結束符/0, 這個結束符是在定義字符串的時候系統自動加上去的，就像定義數組a一樣
 - 數組b定義了一個字符數組，因為strlen找不到結束符，所以strlen(b)的長度就不確定的
 
-<h2 id="4.5">實現不同log等級設置</h2>
+<h2 id="4.5">實現不同log等級設置 以及 利用巨集除錯的輸出</h2>
 
 可以透過巨集來控制不同等級log的訊息，根據使用情況來進行切換
 
@@ -864,6 +866,21 @@ int main(void)
     return 0;
 }
 ```
+
+用於除錯的終端機輸出
+
+- 使用printf 除錯時，除了印出錯誤訊息外，追蹤錯誤發生的檔案和行數也很重要
+- GC編譯時，透過 `-DDEBUG` 來開啟此巨集
+
+    ```C
+    #ifdef DEBUG
+        #define DEBUG_INFO(format, ...) \
+            fprintf(stderr, "(%s:%d) " format "\n", \
+                __FILE__, __LINE__, ##__VA_ARGS__);
+    #else
+        #define DEBUG_INFO(...)
+    #endif
+    ```
 
 <h2 id="4.6">#ifdef 與 #if defined 用法</h2>
 
@@ -1445,6 +1462,98 @@ unsigned long txt2bin(char *txtfile, char *binfile)
 
 - 由於巨集是字串代換，不會有函數呼叫的開銷。但同樣的程式碼區塊會反覆出現，使程式體積變大
 - 過度使用巨集會使得程式難以除錯，不建議為了優化程式刻意把函式改寫成巨集。
+
+巨集可檢查特定整數是否為奇/偶數：
+
+- 用到二進位運算的技巧。當某數為偶數時，最後一位數必為0，和1 交集(bitwise and)的結果為0。再以! 進行反向布林運算即可確認該數為偶數
+
+    ```C
+    #define IS_ODD(n) ((n) & 1)
+    #define IS_EVEN(n) (!((n) & 1))
+    ```
+
+巨集可以在不使用額外變數的前提下交換兩個整數：
+
+```C
+#include <stdio.h>
+
+#define SWAP1(a, b) (((a) ^= (b)), ((b) ^= (a)), ((a) ^= (b)))
+
+#define SWAP2(a, b) {    \
+    ((a) ^= (b)); \
+    ((b) ^= (a)); \
+    ((a) ^= (b)); }
+
+int main()
+{
+    int a = 5, b = 10;
+    printf("a = %d, b = %d\n", a, b);
+    SWAP2(a, b);
+    printf("a = %d, b = %d\n", a, b);
+
+    return 0;
+}
+```
+
+巨集可取得無限大、無限小、非數字：
+
+```C
+#ifdef _MSC_VER
+    #include <math.h>
+    #define POS_INF (-logf(0.0))
+#else
+    #define POS_INF (1.0 / 0.0)
+#endif
+
+#ifdef _MSC_VER
+    #include <math.h>
+    #define NEG_INF (logf(0.0))
+#else
+    #define NEG_INF (-1.0 / 0.0)
+#endif
+
+#ifdef _MSC_VER
+    #include <math.h>
+    #define NaN (logf(0.0) - logf(0.0))
+#else
+    #define NaN (0.0 / 0.0)
+#endif
+```
+
+- 以函數的方式
+
+    ```C
+    /* Positive infinity. */
+    #ifdef _MSC_VER
+        double PosInf = -log(0.0);
+    #else
+        double PosInf = 1.0 / 0.0;
+    #endif
+
+    /* Negative infinity. */
+    #ifdef _MSC_VER
+        double NegInf = log(0.0);
+    #else
+        double NegInf = -1.0 / 0.0;
+    #endif
+
+    #ifdef _MSC_VER
+        double NaN = nan("NaN");
+    #else
+        double NaN = 0.0 / 0.0;
+    #endif
+    ```
+
+<h2 id="4.12">指定範圍的隨機整數</h2>
+
+可取得範圍在 min 至 max 間的隨機整數：
+
+```C
+#include <stdlib.h>
+
+#define RANDINT(min, max) \
+    ((min) + random() % ((max) - (min) + 1))
+```
 
 <h1 id="5">Linux C (GNU C stardard)</h1>
 
