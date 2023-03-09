@@ -18,6 +18,7 @@ If there is related infringement or violation of related regulations, please con
 - [Knowledge](#2)
   - [Data Structure](#2.1)
   - [Interview Questions](#2.2)
+  - [數據儲存與指針](#2.3)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -536,6 +537,402 @@ Modified value of local: 100
     ```
 
 - Deep Copy：we allocate new memory for dynamically allocated members and explicitly copy them.
+
+<h2 id="2.3">數據儲存與指針</h2>
+
+### 數據類型與存儲
+
+#### 大小端模式
+
+位(bit)是最小的存儲單位 -> 電容器充電，高電位為high，低電位為low
+
+8bits = 1byte，字節是計算機最基本的存儲單位，也是最小的尋址單元
+
+字節序，以0x12345678為例
+
+- 小端：高地址放高字節數據，低地址放低字節數據，(高12 34 56 78 低) -> ARM, x86 ...
+- 大端：高地址放低字節數據，低地址放高字節數據，(高78 56 34 12 低) -> PowerPC ...
+
+測試程序
+
+```C
+#include <stdio.h>
+
+int main()
+{
+    int a = 0x11223344;
+    char b;
+    b = a;
+    if (b == 0x44) {
+        printf("Little Endian!\n");
+    }
+    else {
+        printf("Big Endian!\n");
+    }
+    return 0;
+}
+```
+
+```C
+#include <stdio.h>
+
+int main()
+{
+    union u {
+        int a;
+        char b;
+    }c;
+    /*在聯合變量c中，整數變量a和字符型變量b共享4字節的存儲空間*/
+
+    c.a = 0x11223344;
+    if (c.b == 0x44) {
+        printf("Little Endian!\n");
+    }
+    else {
+        printf("Big Endian!\n");
+    }
+    return 0;
+}
+```
+
+位序：只在一字節的存儲中，各bit的存儲順序，以0x78(01111000B)為例
+
+- 小端：高端放高位數據，低端放低位數據，(01111000) -> ARM, x86 ...
+- 大端：高端放低位數據，低端放高位數據，(00011110) -> PowerPC ...
+
+字節序與位序是一一對應的
+
+比較：
+
+- 小端模式低位只存儲低字節數據，比較符合人類的思維習慣
+- 大端模式更適合計算機的處理習慣，不需要考慮地址和數據的對應關係，以字節為單位，把數據從左到右，按照油低到高的地址順序直接讀寫即可，一般用在網路字節序或各種解碼中
+
+如32位元的大小端轉換
+
+```C
+#define swap_endian_u32(A)  \
+(((A & 0xFF000000) >> 24) | ((A & 0x00FF0000) >> 8) | \
+((A & 0x0000FF00) << 8) | ((A & 0x000000FF) << 24))
+```
+
+#### 有無符號數
+
+定義變量沒有使用 `signed` or `unsigned` 的話，默認是使用 `signed` 有符號數
+
+一個字節型的有符號數，最高位bit7是符號位(0 = 正數, 1 = 負數)，其他是數據位
+
+- 一個字節型的有符號數範圍(%d) = [-128, 127]
+- 一個字節型的無符號數範圍(%u) = [0, 255]
+
+無符號數的所有位數都代表大小，因此沒有原碼，補碼的概念
+有符號數，則採用補碼形式存儲，常常會聽到原碼、反碼與補碼
+- 原碼：原始 符號位+數據位 組成
+- 反碼：將原碼除了符號位之外都取反
+- 補碼：反碼+1
+
+透過補碼表示有符號數
+
+1. 順利解決0的編碼問題：`+0(00000000)` 與 `-0(10000000)`，`+0` 和 `-0` 都以 `00000000` 來表示，因此多出來的 `10000000` 可用來表示 -128
+2. 可以將減法轉換為加法運算，省去CPU減法邏輯電路設計的實現，把符號位也直接參與計算
+
+#### 數值溢出
+
+無符號數若發生溢出時會進行 `%` 運算，繼續週期輪迴
+
+- 兩個無符號數相加小於其中一個數
+
+有符號數若發生溢出會導致結果和預期不一樣
+
+- 兩個有符號數的正數相加小於0
+- 兩個有符號數的負數相加大於0
+
+### 數據對齊
+
+編譯器在給定義的變數分配存儲空間時，會根據不同數據類型的對齊原則給變量分配合適的地址與大小
+
+數據對齊原則：即C語言中各種基本數據類型要按照自然邊界對齊
+
+- 一個char型的變量按 1字節 對齊
+- 一個short型的整型變量按 sizeof(short int)字節 對齊
+- 一個int型的整型變量按 sizeof(int)字節 對齊
+
+    ```C
+    #include <stdio.h>
+
+    int main()
+    {
+        char a = 1;
+        short b = 2;
+        int c = 3;
+        printf("&a = %p\n", &a);
+        printf("&b = %p\n", &b);
+        printf("&c = %p\n", &c);
+        return 0;
+    }
+
+    /***********************
+    &a = 0x7ffe2c9958c1
+    &b = 0x7ffe2c9958c2
+    &c = 0x7ffe2c9958c4
+    ************************/
+    ```
+
+#### 為什麼要對齊?
+
+為了簡化CPU應件的電路設計，且未對齊的數據有可能會使一個週期CPU能夠讀取的數據變成花費兩個週期
+
+#### 結構體對齊
+
+結構體內各成員按照各自數據類型的對齊模數對齊
+結構體整體對齊方式：按照最大成員的size或其size的整數倍對齊
+
+- 透過修改結構內成員的排列次序，可以降低空洞的產生
+
+    ```C
+    #include <stdio.h>
+
+    struct student1 {
+        char sex;
+        int num;
+        short age;
+    };
+
+    struct student2 {
+        char sex;
+        short age;
+        int num;
+    };
+
+    int main()
+    {
+        struct student1 stu1;
+        printf("&stu1.sex = %p\n", &stu1.sex);
+        printf("&stu1.num = %p\n", &stu1.num);
+        printf("&stu1.age = %p\n", &stu1.age);
+        printf("struct size = %d\n", sizeof(struct student1));
+        
+        struct student2 stu2;
+        printf("&stu2.sex = %p\n", &stu2.sex);
+        printf("&stu2.age = %p\n", &stu2.age);
+        printf("&stu2.num = %p\n", &stu2.num);
+        printf("struct size = %d\n", sizeof(struct student2));
+
+        return 0;
+    }
+
+    /****************************
+    &stu1.sex = 0x7ffd1033a310
+    &stu1.num = 0x7ffd1033a314
+    &stu1.age = 0x7ffd1033a318
+    struct size = 12
+    &stu2.sex = 0x7ffd1033a300
+    &stu2.age = 0x7ffd1033a302
+    &stu2.num = 0x7ffd1033a304
+    struct size = 8
+    ****************************/
+    ```
+
+- (以GCC為例，默認最大的對齊模數為4，當一種數據類型的大小超過4字節時會仍然按照4字節對齊，但VC++6.0/Visual Studio或是arm-linux-gcc還是以最大成員的size或其size的整數倍對齊) --> 好像沒有GCC也是8字節(double)
+
+#### 聯合體對齊
+
+整體大小：最大成員對齊模數或對齊模數的整數倍
+對齊規則：按照最大成員的對齊模數對齊
+
+union一次只能存在一個變量，整體大小只要能大於等於最大成員的大小即可，不過會是最大成員對齊模數或對齊模數的整數倍
+
+- 對齊模數 = 8(double)
+- 整體大小 = 8x2 = 16 > 11
+
+    ```C
+    #include <stdio.h>
+
+    union u {
+        char sex;
+        double num;
+        int age;
+        char a[11];
+    };
+
+    int main()
+    {
+        union u stu;
+        printf("&stu.sex = %p\n", &stu.sex);
+        printf("&stu.num = %p\n", &stu.num);
+        printf("&stu.age = %p\n", &stu.age);
+        printf("&stu.a = %p\n", &stu.a);
+        printf("union size: %d\n", sizeof(union u));
+        return 0;
+    }
+
+    /************************
+    &stu.sex = 0x7ffdf4951170
+    &stu.num = 0x7ffdf4951170
+    &stu.age = 0x7ffdf4951170
+    &stu.a = 0x7ffdf4951170
+    union size: 16
+    *************************/
+    ```
+
+### Linux內核中的size_t類型
+
+size_t 為無符號型的數據類型
+size_t 的大小並非是固定的，而是用來表示針對某平台的最大長度
+
+### typedef
+
+是C語言中的一個關鍵字，用來位某類型取別名
+
+- 使代碼更加簡潔
+- 讓複雜的指針聲明更加簡潔
+
+用typedef聲明的類型和普通變量一樣都遵循作用域規則，不像宏定義在域處理階段就替換完，屬於全局域
+
+用於struct, union, enum時，可以省略定義變數時要在前面加如 `(struct or union or enum) student stu` 這樣的定義
+
+```C
+#include <stdio.h>
+
+typedef struct student {
+    char name[20];
+    int age;
+    float score;
+} student_t, *student_ptr;
+
+int main()
+{
+    student_t stu = {"wit", 20, 99};
+    student_t *p1 = &stu;
+    student_ptr p2 = &stu;
+    printf("name: %s\n", p1->name);
+    printf("name: %s\n", p2->name);
+    return 0;
+}
+```
+
+與函數指針結合，使函數指針定義上較好看
+
+```C
+#include <stdio.h>
+
+typedef int (*func_t)(int a, int b);
+
+int sum(int a, int b)
+{
+    return a+b;
+}
+
+int main()
+{
+    func_t fp = sum;
+    printf("%d\n", fp(1, 2));
+    return 0;
+}
+```
+
+### 枚舉(enum)
+
+當程序中想定義一組固定長度或範圍的數值時，可以使用枚舉讓程序的可讀性更強
+
+默認由0開始向上遞增
+
+```C
+enum week {
+    SUN,    //0
+    MON,    //1
+    TUE,    //2
+    WED,    //3
+    THU,    //4
+    FRI,    //5
+    SAT,    //6
+};
+
+enum week today = SUN;
+```
+
+也可以顯性指定
+
+```C
+enum week {
+    SUN = 1,    //1
+    MON,        //2
+    TUE,        //3
+    WED,        //4
+    THU = 7,    //7
+    FRI,        //8
+    SAT,        //9
+};
+```
+
+三種定義枚舉的方式
+
+```C
+/*定義枚舉類型的同時，定義枚舉變量*/
+enum week {
+    SUN,
+    MON,
+    TUE,
+    WED,
+    THU,
+    FRI,
+    SAT,
+}today, tomorrow;
+
+/*可以省去枚舉類型，直接定義變量*/
+enum {
+    SUN,
+    MON,
+    TUE,
+    WED,
+    THU,
+    FRI,
+    SAT,
+}today, tomorrow;
+
+/*定義枚舉類型，再定義枚舉變量*/
+enum week {
+    SUN,
+    MON,
+    TUE,
+    WED,
+    THU,
+    FRI,
+    SAT,
+};
+enum week today, tomorrow;
+```
+
+枚舉是一個類型，屬於整數類型，因此可以作為函數參數與函數返回值
+
+枚舉與宏定義的作用差不多，都是用來增加代碼的可讀性
+
+- 宏在前處理階段就替換完畢，編譯器根本不知道有沒有宏
+- 枚舉在編譯階段才全部被替換成整數型
+
+宏需要單獨賦值，不過枚舉可以自動賦值
+
+枚舉用來建立常量值與名字之間的關係
+
+### 常量和變量
+
+#### 變量的本質
+
+組合語言沒有數據類型的概念，主要考慮**存儲地址**、**存儲大小**與**存儲內容**，分別對應到C語言中的**變量名**、**變量類型**與**變量值**
+
+**變量的本質就是一段內存空間的別名**，編譯器在編譯程序時會將變量名看成一個符號，符號值即變量的地址，通過變量名訪問內存大大地增強程序的可讀性
+
+不同的變量會有不同的存儲方式、作用域與生命週期
+
+- 可以使用變量修飾限定符來改變變量的存儲方式
+  - auto: 沒有其他存儲類修飾符修飾，默認設定
+  - register: 告訴編譯器，這變量會頻繁使用，可存於CPU的暫存器中
+  - static: 將變量的存儲由棧轉移至數據段，以及將變量作用域設定在本文檔中
+  - extern: 全局變量一般存儲在數據段，extern可將一個全局變量的作用域擴展到另一個文件中
+  - const
+  - volatile
+  - restrict
+  - typedef
+
 
 <h1 id="3">VT100</h1>
 
