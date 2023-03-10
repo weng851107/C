@@ -1,63 +1,54 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
-typedef struct node
-{
+typedef struct node {
     int data;
-    struct node *next;
-}Node, *ListNode;
+    struct node* next;
+} Node, * ListNode;
 
-Node *creates(void);                // 建立堆疊 
-int isEmpty(Node *top);             // 堆疊已空 
-int stacktop(Node *top);            // 傳回頂端元素 
-Node *add(Node *top, int value);    // 新增元素 
-Node *delete(Node *top);            // 刪除元素 
-void list(Node *top);               // 顯示所有內容 
-
-Node *creates(void)
-{
+Node* creates() {
     return NULL;
 }
 
-int isEmpty(Node *top)
+int isEmpty(Node* sTop)
 {
-    return (top == NULL);
+    return (sTop == NULL);
 }
 
-int stacktop(Node *top)
+int stacktop(Node* sTop)
 {
-    return top->data;
+    return sTop->data;
 }
 
-Node *add(Node *top, int value)
+Node* add(Node* sTop, int value)
 {
-    Node *newnode = (Node *)malloc(sizeof(Node));
+    Node* newnode = (Node*)malloc(sizeof(Node));
     newnode->data = value;
-    newnode->next = top;
-    top = newnode;
-
-    return top;
+    newnode->next = sTop;
+    sTop = newnode;
+    return sTop;
 }
 
-Node *delete(Node *top)
+Node* delete(Node* sTop)
 {
-    Node *tmpnode = top;
+    Node* tmpnode = sTop;
     if (tmpnode == NULL) {
         printf("Stack is NULL\n");
         return NULL;
     }
-    top = top->next;
+    sTop = sTop->next;
     free(tmpnode);
-    return top;
+    return sTop;
 }
 
-void list(Node *top)
+void list(Node* sTop)
 {
-    Node *tmpnode = top;
-    while (tmpnode != NULL) {
-        printf("%d ", tmpnode->data);
-        tmpnode = tmpnode->next;
+    while (sTop != NULL) {
+        printf("%d ", sTop->data);
+        sTop = sTop->next;
     }
+    printf("\n");
 }
 
 int main(int argc, char *argv[])
@@ -73,7 +64,7 @@ int main(int argc, char *argv[])
         printf("\n(2)顯示堆疊頂端"); 
         printf("\n(3)刪除頂端值"); 
         printf("\n(4)顯示所有內容"); 
-        printf("\n\$c>"); 
+        printf("\n"); 
         scanf("%d", &select); 
         
         if(select == -1) 
@@ -103,4 +94,3 @@ int main(int argc, char *argv[])
 
     return 0; 
 }
-

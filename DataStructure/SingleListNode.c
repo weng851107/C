@@ -62,7 +62,7 @@ void delete_node(Node **start, int value)
         return;
     }
 
-    while (current != NULL) {
+    while (current->next != NULL) {
         if (current->next->data == value) {
             tmpnode = current->next;
             current->next = current->next->next;

@@ -1,54 +1,46 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct node
-{
+typedef struct node {
     int data;
     struct node *next;
-}Node, *ListNode;
+} Node, * ListNode;
 
-void add_node(Node **start, int value);
-void insert_node(Node **start, int insert_after_value, int value);
-void delete_node(Node **start, int value);
-void print_list(Node *node);
-void free_list(Node *node);
-
-void add_node(Node **start, int value)
-{
-    Node *header = *start;
-    Node *current = *start;
-    Node *newnode = (Node *)malloc(sizeof(Node));
+void add_node(Node** start, int value) {
+    Node* header = *start;
+    Node* current = *start;
+    Node* newnode = (Node*)malloc(sizeof(Node));
     newnode->data = value;
     newnode->next = NULL;
 
     if (*start == NULL) {
-        *start = newnode;
-        newnode->next = *start;
+        (*start) = newnode;
+        (*start)->next = (*start);
         return;
     }
 
     while (current->next != header) {
         current = current->next;
     }
-    current->next = newnode;
     newnode->next = header;
-    
+    current->next = newnode;
     return;
 }
 
-void insert_node(Node **start, int insert_after_value, int value)
+void insert_node(Node** start, int insert_after_value, int value)
 {
-    Node *header = *start;
-    Node *current = *start;
-    Node *newnode = (Node *)malloc(sizeof(Node));
+    Node* header = *start;
+    Node* current = *start;
+    Node* newnode = (Node*)malloc(sizeof(Node));
     newnode->data = value;
     newnode->next = NULL;
 
     if ((*start)->data == insert_after_value) {
-        newnode->next = current->next;
-        current->next = newnode;
-        return;        
+        newnode->next = (*start)->next;
+        (*start)->next = newnode;
+        return;
     }
+
     current = current->next;
     while (current != header) {
         if (current->data == insert_after_value) {
@@ -61,25 +53,25 @@ void insert_node(Node **start, int insert_after_value, int value)
     return;
 }
 
-void delete_node(Node **start, int value)
+void delete_node(Node** start, int value)
 {
-    Node *header = *start;
-    Node *current = *start;
-    Node *tmpnode = NULL;
+    Node* header = *start;
+    Node* current = *start;
+    Node* tmpnode = NULL;
 
-    if (current->data == value) {
-        tmpnode = *start;
-        *start = current->next;
+    if ((*start)->data == value) {
+        tmpnode = (*start);
+        (*start) = (*start)->next;
         while (current->next != header) {
             current = current->next;
         }
-        current->next = *start;
+        current->next = (*start);
         free(tmpnode);
         return;
     }
 
     current = current->next;
-    while (current != header) {
+    while (current->next != header) {
         if (current->next->data == value) {
             tmpnode = current->next;
             current->next = current->next->next;
@@ -88,46 +80,38 @@ void delete_node(Node **start, int value)
         }
         current = current->next;
     }
-
     return;
 }
 
-void print_list(Node *node)
-{
-    Node *header = node;
-    Node *current = node;
-
-    printf("%d ", current->data);
-    current = current->next;
-    while (current != header) {
-        printf("%d ", current->data);
-        current = current->next;
+void print_list(Node* node) {
+   
+    if (node != NULL) {
+        Node* header = node;
+        printf("%d ", node->data);
+        node = node->next;
+        while (node != header) {
+            printf("%d ", node->data);
+            node = node->next;
+        }
+        printf("\n");
     }
-    printf("\n");
-    
     return;
 }
 
-void free_list(Node *node)
-{
-    Node *header = node;
-    Node *current = node;
-    Node *tmpnode = NULL;
-
-    tmpnode = current;
-    current = current->next;
-    free(tmpnode);
-
-    while (current != header) {
-        tmpnode = current;
-        current = current->next;
+void free_list(Node* node) {
+    Node* header = node;
+    Node* tmpnode = NULL;
+    node = node->next;
+    while (node != header) {
+        tmpnode = node;
+        node = node->next;
         free(tmpnode);
     }
-
+    free(header);
     return;
 }
 
-int main(int argc, char *argv[])
+int main()
 {
     // create first node "head"
     Node *head = NULL;
@@ -154,3 +138,5 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
+

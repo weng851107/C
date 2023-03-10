@@ -1,30 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct node
-{
+typedef struct node {
     int data;
     struct node *prev;
     struct node *next;
-}Node, *ListNode;
-
-void add_node(Node **start, int value);
-void insert_node(Node **start, int insert_after_value, int value);
-void delete_node(Node **start, int value);
-void print_list(Node *node);
-void inverse_print_list(Node *node);
-void free_list(Node *node);
+} Node, * ListNode;
 
 void add_node(Node **start, int value)
 {
-    Node *newnode = (Node *)malloc(sizeof(Node));
+    Node* current = *start;
+    Node* newnode = (Node *)malloc(sizeof(Node));
     newnode->data = value;
     newnode->prev = NULL;
     newnode->next = NULL;
-    Node *current = *start;
 
-    if (*start == NULL) {
-        *start = newnode;
+    if ((*start) == NULL) {
+        (*start) = newnode;
         return;
     }
 
@@ -33,109 +25,101 @@ void add_node(Node **start, int value)
     }
     current->next = newnode;
     newnode->prev = current;
-    
     return;
 }
 
 void insert_node(Node **start, int insert_after_value, int value)
 {
-    Node *newnode = (Node *)malloc(sizeof(Node));
+    Node* current = *start;
+    Node* newnode = (Node*)malloc(sizeof(Node));
     newnode->data = value;
     newnode->prev = NULL;
     newnode->next = NULL;
-    Node *current = *start;
 
-    while (current != NULL)
-    {
-        if (current->data == insert_after_value) {
+    while (current != NULL) {
+        if (current->data = insert_after_value) {
             if (current->next == NULL) {
-                current->next = newnode;
                 newnode->prev = current;
-                return;
+                current->next = newnode;
             }
             else {
                 newnode->next = current->next;
                 current->next->prev = newnode;
                 newnode->prev = current;
                 current->next = newnode;
-                return;
             }
+            return;
         }
         current = current->next;
     }
-    
     return;
 }
 
-void delete_node(Node **start, int value)
+void delete_node(Node** start, int value)
 {
-    Node *current = *start;
-    Node *tmpnode = NULL;
+    Node* current = *start;
+    Node* tmpnode = NULL;
 
-    if (current->data == value) {
-        *start = current->next;
+    if ((*start)->data == value) {
+        (*start) = (*start)->next;
         (*start)->prev = NULL;
         free(current);
         return;
     }
 
-    while (current != NULL) {
+    while (current->next != NULL) {
         if (current->next->data == value) {
             tmpnode = current->next;
             current->next = current->next->next;
-            if (current->next != NULL)
+            if (current->next != NULL) {
                 current->next->prev = current;
+            }
             free(tmpnode);
             return;
         }
         current = current->next;
     }
-    
     return;
 }
 
-void print_list(Node *node)
+void print_list(Node* node)
 {
-    printf("list: ");
-    while (node != NULL) {
+    while (node != NULL)
+    {
         printf("%d ", node->data);
         node = node->next;
     }
     printf("\n");
-
-    return;
 }
 
-void inverse_print_list(Node *node)
+void inverse_print_list(Node* node)
 {
-    printf("inverse list: ");
-
-    while (node->next != NULL) {
+    while (node->next != NULL)
+    {
         node = node->next;
     }
-    
-    while (node != NULL) {
+
+    while (node != NULL)
+    {
         printf("%d ", node->data);
         node = node->prev;
     }
-
     printf("\n");
-
     return;
 }
 
-void free_list(Node *node)
+void free_list(Node* node)
 {
+    Node* tmpnode = NULL;
     while (node != NULL) {
-        Node *tmpnode = node;
+        tmpnode = node;
         node = node->next;
         free(tmpnode);
     }
-
     return;
 }
 
-int main(int argc, char *argv[])
+int main()
 {
     // create first node "head"
     Node *head = NULL;
