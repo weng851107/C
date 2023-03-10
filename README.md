@@ -931,7 +931,23 @@ enum week today, tomorrow;
   - typedef
 
 
+<h2 id="2.4">指針讀取記憶體數值應用搭配大小端</h2>
 
+已知 memory address 中 0x1000 = 0x01, 0x1001 = 0x23, 0x1002 = 0x45, 0x1003 = 0x67, 0x1004 = 0x89, 0x1005 = 0xab, 0x1006 = 0xcd, 0x1007 = 0xef
+當unsigned int *ptr = 0x1000;
+求 *ptr+1 與 *(ptr+1) 各為多少
+
+以小端為例：
+
+根據題意，ptr 為一個指向 unsigned int 型別的指標，指向 memory address 0x1000。因為 unsigned int 的大小為 4 個 byte，所以當我們對指標進行運算時，會增加 4 個 byte 的偏移量。
+
+*ptr 意味著我們從指向 0x1000 的記憶體位置開始讀取 4 個 byte 的數據，由於機器的 endianness 不同，因此它可以被解讀為兩個不同的 unsigned short 值，即 0x2301 和 0x6745，或一個 unsigned int 值，即 0x67452301，取決於 CPU 的 endianness。
+
+當我們運算 *ptr + 1 時，首先會將 *ptr 計算出來，即 0x67452301，然後將其加上 1。結果為 0x67452302。
+
+*(ptr+1) 意味著我們將指標 ptr 偏移 4 個 byte，指向記憶體地址 0x1004。然後我們將讀取 4 個 byte 的數據，即 0x89ab67cd，這可以被解釋為一個 unsigned int 值，即 0x89ab67cd。
+
+因此，ptr+1 的結果為 0x67452302，(ptr+1) 的結果為 0x89ab67cd。
 
 <h1 id="3">VT100</h1>
 
