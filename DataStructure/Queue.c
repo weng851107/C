@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <assert.h>
 
 typedef struct node
@@ -8,143 +7,139 @@ typedef struct node
     int data;
     struct node *prev;
     struct node *next;
-}Node, *ListNode;
+} Node, * ListNode;
 
 typedef struct queue
 {
-    Node *head;
-    Node *tail;
-}Queue;
+    struct node* head;
+    struct node* tail;
+} Queue, * QueueList;
 
-Queue *queue_new(void);
-void queue_delete(Queue *qlist);
-bool queue_is_empty(const Queue *qlist);
-int queue_peek(const Queue *qlist);
-bool queue_enqueue(Queue *qlist, int data);
-int queue_dequeue(Queue *qlist);
+Queue* create();
+int isEmpty(Queue* QList);
+int enqueue(Queue* QList, int value);
+int dequeue(Queue* QList);
+int peek(Queue* QList);
+void list(Queue* QList);
+void delete(Queue* QList);
 
-Queue *queue_new(void)
+Queue* create()
 {
-    Queue *qlist = (Queue *)malloc(sizeof(Queue));
-
-    qlist->head = NULL;
-    qlist->tail = NULL;
-
-    return qlist;
+    Queue* QList = (Queue*)malloc(sizeof(Queue));
+    QList->head = NULL;
+    QList->tail = NULL;
+    return QList;
 }
 
-void queue_delete(Queue *qlist)
+int isEmpty(Queue* QList)
 {
-    if (qlist == NULL) {
-        return;
-    }
-
-    Node *current = qlist->head;
-    while (current != NULL) {
-        Node * tmpnode = current;
-        current = current->next;
-        free(tmpnode);
-    }
-
-    free(qlist);
+    assert(QList);
+    return (QList->head == NULL)?1:0;
 }
 
-bool queue_is_empty(const Queue *qlist)
+int enqueue(Queue* QList, int value)
 {
-    assert(qlist);
-
-    return !(qlist->head) ? true : false;
-}
-
-int queue_peek(const Queue *qlist)
-{
-    assert(!queue_is_empty(qlist));
-
-    return qlist->head->data;
-}
-
-bool queue_enqueue(Queue *qlist, int data)
-{
-    Node *newnode = (Node *)malloc(sizeof(Node));
-    newnode->data = data;
+    Node* newnode = (Node*)malloc(sizeof(Node));
+    newnode->data = value;
     newnode->prev = NULL;
     newnode->next = NULL;
 
-    if (qlist->head == NULL) {
-        qlist->head = newnode;
-        qlist->tail = newnode;
-        return true;
+    if (QList->head == NULL) {
+        QList->head = newnode;
+        QList->tail = newnode;
+        return 0;
     }
 
-    qlist->tail->next = newnode;
-    newnode->prev = qlist->tail;
-    qlist->tail = newnode;
-    return true;
+    QList->tail->next = newnode;
+    newnode->prev = QList->tail;
+    QList->tail = newnode;
+
+    return 0;
 }
 
-int queue_dequeue(Queue *qlist)
+int dequeue(Queue* QList)
 {
-    assert(!queue_is_empty(qlist));
+    assert(!isEmpty(QList));
 
-    int popdata = qlist->head->data;
+    int popdata = QList->head->data;
 
-    if (qlist->head == qlist->tail) {
-        free(qlist->head);
-        qlist->head = NULL;
-        qlist->tail = NULL;
+    if (QList->head == QList->tail) {
+        QList->head = NULL;
+        QList->tail = NULL;
     }
     else {
-        Node *current = qlist->head;
-        qlist->head = current->next;
+        Node* current = QList->head;
+        QList->head = current->next;
         free(current);
     }
-
     return popdata;
 }
 
-void list(Queue *qlist)
+int peek(Queue* QList)
 {
-    printf("list: ");
-    Node *current = qlist->head;
-    while (current != qlist->tail) {
+    assert(!isEmpty(QList));
+    return QList->head->data;
+}
+
+void list(Queue* QList)
+{
+    Node* current = QList->head;
+    while (current != QList->tail) {
         printf("%d ", current->data);
         current = current->next;
     }
     printf("%d\n", current->data);
 }
 
+void delete(Queue* QList)
+{
+    if (QList == NULL) {
+        return;
+    }
+
+    Node* tmpnode = NULL;
+    while (QList->head != NULL)
+    {
+        tmpnode = QList->head;
+        QList->head = QList->head->next;
+        free(tmpnode);
+    }
+    QList->head = NULL;
+    QList->tail = NULL;
+    free(QList);
+    QList = NULL;
+}
+
 int main(int argc, char *argv[])
 {
     int ret = 0;
     int data = 0;
-    Queue *qlist = queue_new();
+    Queue *qlist = create();
 
-    ret = queue_enqueue(qlist, 50);
-    ret = queue_enqueue(qlist, 7);
-    ret = queue_enqueue(qlist, -41);
-    ret = queue_enqueue(qlist, 10);
-    ret = queue_enqueue(qlist, -5);
-
-    list(qlist);
-    data = queue_peek(qlist);
-    printf("peek: %d\n", data);
-
-    ret = queue_dequeue(qlist);
-    ret = queue_dequeue(qlist);
+    ret = enqueue(qlist, 50);
+    ret = enqueue(qlist, 7);
+    ret = enqueue(qlist, -41);
+    ret = enqueue(qlist, 10);
+    ret = enqueue(qlist, -5);
 
     list(qlist);
-    data = queue_peek(qlist);
+    data = peek(qlist);
     printf("peek: %d\n", data);
 
-    ret = queue_dequeue(qlist);
+    ret = dequeue(qlist);
+    ret = dequeue(qlist);
+
+    list(qlist);
+    data = peek(qlist);
+    printf("peek: %d\n", data);
+
+    ret = dequeue(qlist);
     
     list(qlist);  
-    data = queue_peek(qlist);
+    data = peek(qlist);
     printf("peek: %d\n", data);  
 
-    queue_delete(qlist);
+    delete(qlist);
 
     return 0;
 }
-
-

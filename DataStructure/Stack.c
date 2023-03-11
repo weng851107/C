@@ -11,6 +11,12 @@ Node* creates() {
     return NULL;
 }
 
+int isEmpty(Node* sTop);
+int stacktop(Node* sTop);
+Node* add(Node* sTop, int value);
+Node* delete(Node* sTop);
+void list(Node* sTop);
+
 int isEmpty(Node* sTop)
 {
     return (sTop == NULL);

@@ -1,62 +1,57 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <assert.h>
 
 typedef struct node
 {
     int data;
-    struct node *left;
-    struct node *right;
-}Node;
+    struct node* left;
+    struct node* right;
+} Node, * ListNode;
 
 typedef int (*cmp_fn)(int a, int b);
 
 typedef struct tree
 {
-    Node *root;
+    Node* root;
     cmp_fn cmp;
-}Tree;
+} Tree;
 
 static int cmp(int a, int b)
 {
-    if (a == b) {
-        return 0;
-    }
-    else if (a < b) {
-        return -1;
-    }
-    else if (a > b) {
+    if (a > b) {
         return 1;
     }
+    else if (a == b) {
+        return 0;
+    }
+    else {
+        return -1;
+    }
 }
 
-Tree *tree_new(cmp_fn cmp);
-void tree_delete(Tree *Tlist);
+Tree* tree_create(cmp_fn cmp);
+void tree_delete(Tree* TList);
+int tree_isEmpty(Tree* TList);
+int tree_height(Tree* TList);
+int tree_contain(Tree* TList, int value);
+int tree_min(Tree* TList);
+int tree_max(Tree* TList);
+int tree_insert(Tree* TList, int value);
+int tree_remove(Tree* TList, int value);
+void preorder(Node* node);
+void inorder(Node* node);
+void postorder(Node* node);
 
-bool tree_is_empty(const Tree *Tlist);
-int tree_height(const Tree *Tlist);
-bool tree_contain(Tree *Tlist, int value);
-int tree_min(const Tree *Tlist);
-int tree_max(const Tree *Tlist);
-bool tree_insert(Tree *Tlist, int value);
-bool tree_remove(Tree *Tlist, int value);
-
-void preorder(Node *node);
-void inorder(Node *node);
-void postorder(Node *node);
-
-Tree *tree_new(cmp_fn cmp)
+Tree* tree_create(cmp_fn cmp)
 {
-    Tree *Tlist = (Tree *)malloc(sizeof(Tree));
-
-    Tlist->root = NULL;
-    Tlist->cmp = cmp;
-
-    return Tlist;
+    Tree* TList = (Tree*)malloc(sizeof(Tree));
+    TList->root = NULL;
+    TList->cmp = cmp;
+    return TList;
 }
 
-static void _tree_delete(Node *node)
+static void _tree_delete(Node* node)
 {
     if (node == NULL) {
         return;
@@ -69,203 +64,188 @@ static void _tree_delete(Node *node)
     return;
 }
 
-void tree_delete(Tree *Tlist)
+void tree_delete(Tree* TList)
 {
-    if (Tlist == NULL) {
+    if (TList == NULL) {
         return;
     }
-
-    _tree_delete(Tlist->root);
-    free(Tlist);
-
+    _tree_delete(TList->root);
+    free(TList);
     return;
 }
 
-bool tree_is_empty(const Tree *Tlist)
+int tree_isEmpty(Tree* TList)
 {
-    assert(Tlist);
-
-    return !(Tlist->root) ? true : false;
+    assert(TList);
+    return (TList->root == NULL)?(1):(0);
 }
 
-static int _tree_height(const Node *node)
+static int _tree_height(Node* node)
 {
     if (node == NULL) {
         return 0;
     }
 
-    int l = (node->left) ? _tree_height(node->left) : 0;
-    int r = (node->right) ? _tree_height(node->right) : 0;
+    int l = (node->left != NULL)?_tree_height(node->left):0;
+    int r = (node->right != NULL)?_tree_height(node->right):0;
+    int h = (l>r)?(l):(r);
 
-    int h = (l > r) ? l : r;
-
-    return h + 1;
+    return h+1;
 }
 
-int tree_height(const Tree *Tlist)
+int tree_height(Tree* TList)
 {
-    assert(Tlist);
-
-    return _tree_height(Tlist->root);
+    assert(TList);
+    return _tree_height(TList->root);
 }
 
-static bool _tree_contain(Node *node, int value, cmp_fn cmp)
+static int _tree_contain(Node* node, cmp_fn cmp, int value)
 {
     if (node == NULL) {
-        return false;
+        return 0;
     }
 
-    if (cmp(value, node->data) == 0) {
-        return true;
+    if (cmp(node->data, value) > 0) {
+        return _tree_contain(node->left, cmp, value);
     }
-    else if (cmp(value, node->data) < 0) {
-        return _tree_contain(node->left, value, cmp);
+    else if (cmp(node->data, value) < 0) {
+        return _tree_contain(node->right, cmp, value);
     }
-    else if (cmp(value, node->data) > 0) {
-        return _tree_contain(node->right, value, cmp);
+    else {
+        return 1;
     }
-
-    return false;
 }
 
-bool tree_contain(Tree *Tlist, int value)
+int tree_contain(Tree* TList, int value)
 {
-    assert(Tlist);
-
-    return _tree_contain(Tlist->root, value, Tlist->cmp);
+    assert(TList);
+    return _tree_contain(TList->root, TList->cmp, value);
 }
 
-int tree_min(const Tree *Tlist)
+static int _tree_min(Node* node)
 {
-    assert(Tlist);
-
-    Node *minnode = Tlist->root;
-    while (minnode->left != NULL) {
+    Node* minnode = node;
+    while (minnode->left != NULL)
+    {
         minnode = minnode->left;
     }
-
     return minnode->data;
 }
 
-int tree_max(const Tree *Tlist)
+int tree_min(Tree* TList)
 {
-    assert(Tlist);
+    assert(TList);
+    return _tree_min(TList->root);
+}
 
-    Node *maxnode = Tlist->root;
-    while (maxnode->right != NULL) {
+static int _tree_max(Node* node)
+{
+    Node* maxnode = node;
+    while (maxnode->right != NULL)
+    {
         maxnode = maxnode->right;
     }
-
     return maxnode->data;
 }
 
-static bool _tree_insert(Node **node, int value, cmp_fn cmp)
+int tree_max(Tree* TList)
+{
+    assert(TList);
+    return _tree_max(TList->root);
+}
+
+static int _tree_insert(Node** node, int value, cmp_fn cmp)
 {
     if (*node == NULL) {
-        Node *newnode = (Node *)malloc(sizeof(Node));
+        Node* newnode = (Node*)malloc(sizeof(Node));
         newnode->data = value;
         newnode->left = NULL;
         newnode->right = NULL;
         *node = newnode;
-        return true;
+        return 1;
     }
-
-    if (cmp(value, (*node)->data) <= 0) {
-        return _tree_insert(&(*node)->left, value, cmp);
+    else if (cmp((*node)->data, value) >= 0) {
+        _tree_insert(&(*node)->left, value, cmp);
     }
-    else if (cmp(value, (*node)->data) > 0) {
-        return _tree_insert(&(*node)->right, value, cmp);
+    else if (cmp((*node)->data, value) < 0) {
+        _tree_insert(&(*node)->right, value, cmp);
     }
-
-    return true;
 }
 
-bool tree_insert(Tree *Tlist, int value)
+int tree_insert(Tree* TList, int value)
 {
-    assert(Tlist);
-
-    return _tree_insert(&(Tlist->root), value, Tlist->cmp);
+    assert(TList);
+    return _tree_insert(&TList->root, value, TList->cmp);
 }
 
-static int _node_min(Node *node)
-{
-    assert(node);
-
-    if (node->left != NULL) {
-        return _node_min(node->left);
-    }
-
-    return node->data;
-}
-
-static bool _tree_remove(Node **node, int value, cmp_fn cmp)
+static int _tree_remove(Node** node, int value, cmp_fn cmp)
 {
     if (*node == NULL) {
-        return false;
+        return 0;
     }
 
-    if (cmp(value, (*node)->data) == 0) {
+    if (cmp((*node)->data, value) == 0) {
         if ((*node)->left == NULL) {
-            Node *tmpnode = (*node)->right;
-            free(*node);
-            *node = tmpnode;
-            return true;
+            Node* tmpnode = *node;
+            *node = (*node)->right;
+            free(tmpnode);
         }
         else if ((*node)->right == NULL) {
-            Node *tmpnode = (*node)->left;
-            free(*node);
-            *node = tmpnode;
-            return true;
+            Node* tmpnode = *node;
+            *node = (*node)->left;
+            free(tmpnode);
         }
         else {
-            int min = _node_min((*node)->right);
-            (*node)->data = min;
-            return _tree_remove(&(*node)->right, min, cmp);
+            Node* tmpnode = *node;
+            *node = (*node)->right;
+            free(tmpnode);
+            _tree_remove(node, _tree_min(*node), cmp);
         }
+        return 1;
     }
-    else if (cmp(value, (*node)->data) < 0) {
+    else if (cmp((*node)->data, value) > 0) {
         return _tree_remove(&(*node)->left, value, cmp);
     }
-    else if (cmp(value, (*node)->data) > 0) {
+    else {
         return _tree_remove(&(*node)->right, value, cmp);
     }
-
-    return false;
 }
 
-bool tree_remove(Tree *Tlist, int value)
+int tree_remove(Tree* TList, int value)
 {
-    if (tree_is_empty(Tlist)) {
-        return false;
+    if (tree_isEmpty(TList)) {
+        return 0;
     }
-
-    return _tree_remove(&(Tlist->root), value, Tlist->cmp);
+    return _tree_remove(&TList->root, value, TList->cmp);
 }
 
-void preorder(Node *node)
+void preorder(Node* node)
 {
     if (node != NULL) {
         printf("%d ", node->data);
         preorder(node->left);
         preorder(node->right);
+        return;
     }
 }
 
-void inorder(Node *node)
+void inorder(Node* node)
 {
     if (node != NULL) {
         inorder(node->left);
         printf("%d ", node->data);
         inorder(node->right);
+        return;
     }
 }
 
-void postorder(Node *node)
+void postorder(Node* node)
 {
     if (node != NULL) {
         postorder(node->left);
         postorder(node->right);
         printf("%d ", node->data);
+        return;
     }
 }
 
@@ -273,7 +253,7 @@ int main(int argc, char *argv[])
 {
     int ret = 0;
 
-    Tree *binarytree = tree_new(cmp);
+    Tree *binarytree = tree_create(cmp);
     
     ret = tree_insert(binarytree, 50);
     ret = tree_insert(binarytree, 23);
@@ -323,4 +303,5 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
 

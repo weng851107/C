@@ -7,6 +7,13 @@ typedef struct node {
     struct node *next;
 } Node, * ListNode;
 
+void add_node(Node **start, int value);
+void insert_node(Node **start, int insert_after_value, int value);
+void delete_node(Node** start, int value);
+void print_list(Node* node);
+void inverse_print_list(Node* node);
+void free_list(Node* node);
+
 void add_node(Node **start, int value)
 {
     Node* current = *start;
