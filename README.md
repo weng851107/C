@@ -14,6 +14,7 @@ If there is related infringement or violation of related regulations, please con
   - [2~32進位線上轉換器(含浮點數)](#0.4)
   - [網頁資訊](#0.5)
   - [[Book] Modern_C_Programming](#0.6)
+  - [[ExampleCode] 圖解資料結構使用C語言](#0.7)
 - [A ‘C’ Test: The 0x10 Best Questions for Would-be Embedded Programmers](#1)
 - [Knowledge](#2)
   - [Data Structure](#2.1)
@@ -145,6 +146,10 @@ http://www.speedfly.cn/tools/hexconvert/
 <h2 id="0.6">[Book] Modern_C_Programming</h2>
 
 [Modern_C_Programming.pdf](./Modern_C_Programming/Modern_C_Programming.pdf)
+
+<h2 id="0.7">[ExampleCode] 圖解資料結構使用C語言</h2>
+
+[ExampleCode_圖解資料結構使用C語言](./%E5%9C%96%E8%A7%A3%E8%B3%87%E6%96%99%E7%B5%90%E6%A7%8B%E4%BD%BF%E7%94%A8C%E8%AA%9E%E8%A8%80/MP31913_example/)
 
 <h1 id="1">A ‘C’ Test: The 0x10 Best Questions for Would-be Embedded Programmers</h1>
 
@@ -985,7 +990,12 @@ int* a[10];     // 指針數組，數組元素類型為 int*
 int (*a)[10];   // 數組指針，指向數組類型 int a[10]
 int* f(int);    // 指針函數，函數返回值為 int*
 int (*f)(int);  // 函數指針，指向函數類型 int f(int)
+int* (*f)[10];  // 數組指針，指向數組類型 int *a[10] 
 ```
+
+#### 指針類型與運算
+
+
 
 
 
