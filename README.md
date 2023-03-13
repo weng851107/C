@@ -20,6 +20,7 @@ If there is related infringement or violation of related regulations, please con
   - [Data Structure](#2.1)
   - [Interview Questions](#2.2)
   - [數據儲存與指針](#2.3)
+  - [指針讀取記憶體數值應用搭配大小端](#2.4)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
