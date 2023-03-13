@@ -1008,15 +1008,16 @@ int* (*f)[10];  // 數組指針，指向數組類型 int *a[10]
 
 以小端為例：
 
-根據題意，ptr 為一個指向 unsigned int 型別的指標，指向 memory address 0x1000。因為 unsigned int 的大小為 4 個 byte，所以當我們對指標進行運算時，會增加 4 個 byte 的偏移量。
+- 根據題意，ptr 為一個指向 unsigned int 型別的指標，指向 memory address 0x1000。因為 unsigned int 的大小為 4 個 byte，所以當我們對指標進行運算時，會增加 4 個 byte 的偏移量。
 
-*ptr 意味著我們從指向 0x1000 的記憶體位置開始讀取 4 個 byte 的數據，由於機器的 endianness 不同，因此它可以被解讀為兩個不同的 unsigned short 值，即 0x2301 和 0x6745，或一個 unsigned int 值，即 0x67452301，取決於 CPU 的 endianness。
+- *ptr 意味著我們從指向 0x1000 的記憶體位置開始讀取 4 個 byte 的數據，由於機器的 endianness 不同，因此它可以被解讀為兩個不同的 unsigned short 值，即 0x2301 和 0x6745，或一個 unsigned int 值，即 0x67452301，取決於 CPU 的 endianness。
 
-當我們運算 *ptr + 1 時，首先會將 *ptr 計算出來，即 0x67452301，然後將其加上 1。結果為 0x67452302。
+- 當我們運算 *ptr + 1 時，首先會將 *ptr 計算出來，即 0x67452301，然後將其加上 1。結果為 0x67452302。
 
-*(ptr+1) 意味著我們將指標 ptr 偏移 4 個 byte，指向記憶體地址 0x1004。然後我們將讀取 4 個 byte 的數據，即 0x89ab67cd，這可以被解釋為一個 unsigned int 值，即 0x89ab67cd。
+- *(ptr+1) 意味著我們將指標 ptr 偏移 4 個 byte，指向記憶體地址 0x1004。然後我們將讀取 4 個 byte 的數據，即 0xefcdab89
 
-因此，ptr+1 的結果為 0x67452302，(ptr+1) 的結果為 0x89ab67cd。
+- 因此，ptr+1 的結果為 0x67452302，(ptr+1) 的結果為 0xefcdab89。
+
 
 <h1 id="3">VT100</h1>
 

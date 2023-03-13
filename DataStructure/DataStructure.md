@@ -11,6 +11,7 @@ If there is related infringement or violation of related regulations, please con
   - [單向鏈結串列](#0.1)
   - [雙向鏈結串列](#0.2)
   - [環狀鏈結串列](#0.3)
+    - [如何檢測串鏈中是否存在環？如果存在，如何找到環的起點？](#0.3.1)
   - [堆疊](#0.4)
   - [佇列](#0.5)
   - [二元樹](#0.6)
@@ -45,6 +46,9 @@ If there is related infringement or violation of related regulations, please con
   - [(4) 二元搜索樹操作函式](#5.4)
   - [(5) 二元搜索樹走訪函式](#5.5)
   - [(6) 引線二元樹(Thread Binary Tree)](#5.6)
+- [排序](#6)
+  - [快速排序法(Quicksort)](#6.1)
+
 
 <h1 id="0">自我練習</h1>
 
@@ -59,6 +63,47 @@ If there is related infringement or violation of related regulations, please con
 <h2 id="0.3">環狀鏈結串列</h2>
 
 [CircularListNode.c](./CircularListNode.c)
+
+<h3 id="0.3.1">如何檢測串鏈中是否存在環？如果存在，如何找到環的起點？</h3>
+
+快慢指針法（Floyd's algorithm），也稱為龜兔賽跑算法
+
+- 使用兩個指針，一個快指針和一個慢指針，它們都指向串鏈的開頭
+- 快指針每次向前移動兩步，而慢指針每次只向前移動一步。如果存在環，快指針最終會追上慢指針。當快指針追上慢指針時，我們可以確定存在環
+- 為了找到起點，我們需要重新遍歷串鏈，但是這次我們將一個指針指向串鏈的開頭，另一個指針指向剛才相遇的點。接下來，我們讓這兩個指針同時向前移動，每次只移動一步，直到它們再次相遇。這次相遇的點就是環的起點。
+
+    ```C
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    struct ListNode {
+        int val;
+        struct ListNode *next;
+    };
+
+    struct ListNode *detectCycle(struct ListNode *head) {
+        struct ListNode *slow = head, *fast = head;
+        while (fast && fast->next) {
+            slow = slow->next;
+            fast = fast->next->next;
+            if (slow == fast) {
+                break;
+            }
+        }
+        
+        if (!fast || !fast->next) {
+            return NULL;
+        }
+        
+        slow = head;
+        while (slow != fast) {
+            slow = slow->next;
+            fast = fast->next;
+        }
+        
+        return slow;
+    }
+    ```
 
 <h2 id="0.4">堆疊</h2>
 
@@ -2059,5 +2104,51 @@ tree_t * tree_new(cmp_fn cmp)
     `Left Thread: True表示Lchild是左引線；False表示Lchild指向左子點`
     `Right Thread: True表示Rchild是右引線；False表示Rchild指向左子點`
 
+<h1 id="6">排序</h1>
+
+<h2 id="6.1">快速排序法(Quicksort)</h2>
+
+一種基於 "分治法" 的排序算法。它的基本思想是選擇一個基準數（pivot），通過一趟排序將待排序的數據分割成獨立的兩部分，其中一部分的所有數據都比基準數小，另一部分的所有數據都比基準數大，然後再分別對這兩部分數據進行排序，以達到整個序列有序的目的。
+
+```C
+#include <stdio.h>
+
+void swap(int* a, int* b) {
+    int tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+void quicksort(int arr[], int left, int right) {
+    if (left < right) {
+        int pivot = arr[(left + right) / 2]; // 选择中间数作为基准数
+        int i = left - 1;
+        int j = right + 1;
+        while (1) {
+            while (arr[++i] < pivot);
+            while (arr[--j] > pivot);
+            if (i >= j)
+                break;
+            swap(&arr[i], &arr[j]);
+        }
+        quicksort(arr, left, j);
+        quicksort(arr, j + 1, right);
+    }
+}
+
+int main() {
+    int arr[] = { 5, 4, 3, 2, 1 };
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    quicksort(arr, 0, n - 1);
+
+    printf("Sorted array: ");
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+    return 0;
+}
+```
 
 
