@@ -47,7 +47,11 @@ If there is related infringement or violation of related regulations, please con
   - [(5) 二元搜索樹走訪函式](#5.5)
   - [(6) 引線二元樹(Thread Binary Tree)](#5.6)
 - [排序](#6)
-  - [快速排序法(Quicksort)](#6.1)
+  - [氣泡排序法(Bubble sort)](#6.1)
+  - [快速排序法(Quicksort)](#6.2)
+- [搜尋](#7)
+  - [循序搜尋法（Sequential Search）](#7.1)
+  - [二分搜尋法（Binary Search）](#7.2)
 
 
 <h1 id="0">自我練習</h1>
@@ -2106,7 +2110,52 @@ tree_t * tree_new(cmp_fn cmp)
 
 <h1 id="6">排序</h1>
 
-<h2 id="6.1">快速排序法(Quicksort)</h2>
+<h2 id="6.1">氣泡排序法(Bubble sort)</h2>
+
+氣泡排序法（Bubble Sort）是一種簡單的排序算法，它重複地遍歷待排序的列表，比較每對相鄰的元素，如果它們的順序錯誤，就交換它們的位置。這個過程會重複直到沒有元素需要交換，也就是說列表已經排序完成。
+
+```C
+#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void bubble_sort(int *arr, int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                swap(&arr[j], &arr[j + 1]);
+            }
+        }
+    }
+}
+
+void print_array(int *arr, int size) {
+    for (int i = 0; i < size; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+}
+
+int main() {
+    int arr[] = {64, 34, 25, 12, 22, 11, 90};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    printf("Unsorted array: \n");
+    print_array(arr, n);
+
+    bubble_sort(arr, n);
+
+    printf("Sorted array: \n");
+    print_array(arr, n);
+    return 0;
+}
+```
+
+<h2 id="6.2">快速排序法(Quicksort)</h2>
 
 一種基於 "分治法" 的排序算法。它的基本思想是選擇一個基準數（pivot），通過一趟排序將待排序的數據分割成獨立的兩部分，其中一部分的所有數據都比基準數小，另一部分的所有數據都比基準數大，然後再分別對這兩部分數據進行排序，以達到整個序列有序的目的。
 
@@ -2150,5 +2199,83 @@ int main() {
     return 0;
 }
 ```
+
+<h1 id="7">搜尋</h1>
+
+<h2 id="7.1">循序搜尋法（Sequential Search）</h2>
+
+循序搜尋法（Sequential Search）是一種在資料結構中查找特定元素的簡單算法。它依次檢查數組中的每個元素，直到找到所需元素或遍歷完數組。
+
+```C
+#include <stdio.h>
+
+int sequential_search(int *arr, int n, int target) {
+    for (int i = 0; i < n; i++) {
+        if (arr[i] == target) {
+            return i; // 找到目標，返回其索引
+        }
+    }
+    return -1; // 未找到目標，返回-1
+}
+
+int main() {
+    int arr[] = {34, 56, 78, 22, 89, 7, 45};
+    int n = sizeof(arr) / sizeof(arr[0]);
+    int target = 22;
+
+    int result = sequential_search(arr, n, target);
+
+    if (result != -1) {
+        printf("元素 %d 在數組中的索引是 %d\n", target, result);
+    } else {
+        printf("元素 %d 不在數組中\n", target);
+    }
+
+    return 0;
+}
+```
+
+<h2 id="7.2">二分搜尋法（Binary Search）</h2>
+
+二分搜尋法（Binary Search）是一種在已排序數組中查找特定元素的高效算法。該算法的工作原理是不斷將數組範圍分成兩半，然後根據目標元素與當前範圍中間元素的大小關係確定目標元素所在的半邊。
+
+```C
+#include <stdio.h>
+
+int binary_search(int *arr, int left, int right, int target) {
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+
+        if (arr[mid] == target) {
+            return mid; // 找到目標，返回其索引
+        }
+
+        if (arr[mid] < target) {
+            left = mid + 1; // 目標在右半部分
+        } else {
+            right = mid - 1; // 目標在左半部分
+        }
+    }
+
+    return -1; // 未找到目標，返回-1
+}
+
+int main() {
+    int arr[] = {7, 22, 34, 45, 56, 78, 89};
+    int n = sizeof(arr) / sizeof(arr[0]);
+    int target = 22;
+
+    int result = binary_search(arr, 0, n - 1, target);
+
+    if (result != -1) {
+        printf("元素 %d 在數組中的索引是 %d\n", target, result);
+    } else {
+        printf("元素 %d 不在數組中\n", target);
+    }
+
+    return 0;
+}
+```
+
 
 

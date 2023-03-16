@@ -22,6 +22,10 @@ If there is related infringement or violation of related regulations, please con
   - [數據儲存與指針](#2.3)
   - [指針讀取記憶體數值應用搭配大小端](#2.4)
   - [sizeof 與 strlen](#2.5)
+  - [實作 strcat & strncat](#2.6)
+  - [實作 strcpy & strncpy](#2.7)
+  - [實作 strcmp](#2.8)
+  - [實作 strlen](#2.9)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -1298,6 +1302,193 @@ size_t count = sizeof(arr)/sizeof(arr[0]);
         return 0;
     }
     ```
+
+<h2 id="2.6">實作 strcat & strncat</h2>
+
+```C
+#include <stdio.h>
+
+char *my_strcat(char *dest, const char *src) {
+    char *ptr = dest;
+    while (*ptr != '\0') {
+        ptr++;
+    }
+    while (*src != '\0') {
+        *ptr++ = *src++;
+    }
+    *ptr = '\0';
+    return dest;
+}
+
+int main() {
+    char str1[50] = "Hello, ";
+    char str2[] = "world!";
+    my_strcat(str1, str2);
+    printf("%s\n", str1);
+    return 0;
+}
+
+/******************************
+Hello, world!
+*******************************/
+```
+
+```C
+#include <stdio.h>
+
+char *my_strncat(char *dest, const char *src, size_t n) {
+    char *ptr = dest;
+    while (*ptr != '\0') {
+        ptr++;
+    }
+    while (n > 0 && *src != '\0') {
+        *ptr++ = *src++;
+        n--;
+    }
+    *ptr = '\0';
+    return dest;
+}
+
+int main() {
+    char str1[50] = "Hello, ";
+    char str2[] = "world!";
+    my_strncat(str1, str2, 3);
+    printf("%s\n", str1);
+    return 0;
+}
+
+/***********************************
+Hello, wor
+***********************************/
+```
+
+<h2 id="2.7">實作 strcpy & strncpy</h2>
+
+```C
+#include <stdio.h>
+
+char *my_strcpy(char *dest, const char *src) {
+    char *dest_copy = dest;
+
+    while (*src) {
+        *dest = *src;
+        dest++;
+        src++;
+    }
+    *dest = '\0';
+
+    return dest_copy;
+}
+
+int main() {
+    char src[] = "Hello, world!";
+    char dest[20];
+
+    my_strcpy(dest, src);
+    printf("Source: %s\n", src);
+    printf("Destination: %s\n", dest);
+
+    return 0;
+}
+
+/**************************************
+Source: Hello, world!
+Destination: Hello, world!
+**************************************/
+```
+
+```C
+#include <stdio.h>
+
+char *my_strncpy(char *dest, const char *src, size_t n) {
+    char *dest_copy = dest;
+
+    while (n > 1 && *src) {
+        *dest = *src;
+        dest++;
+        src++;
+        n--;
+    }
+
+    *dest = '\0';
+
+    return dest_copy;
+}
+
+int main() {
+    char src[] = "Hello, world!";
+    char dest[20];
+
+    my_strncpy(dest, src, 10);
+    printf("Source: %s\n", src);
+    printf("Destination: %s\n", dest);
+
+    return 0;
+}
+
+/***************************************
+Source: Hello, world!
+Destination: Hello, wo
+****************************************/
+```
+
+<h2 id="2.8">實作 strcmp</h2>
+
+```C
+#include <stdio.h>
+
+int mystrcmp(char *s1, char *s2) {
+    int i = 0;
+    while (s1[i] == s2[i]) {
+        if (s1[i] == '\0')
+            return 0;
+        i++;        
+    }
+    return s1[i] - s2[i];
+}
+
+int main() {
+    char str1[100], str2[100];
+    int result;
+
+    printf("Enter the first string: ");
+    scanf("%s", str1);
+
+    printf("Enter the second string: ");
+    scanf("%s", str2);
+
+    result = mystrcmp(str1, str2);
+
+    if (result == 0) {
+        printf("The two strings are equal.\n");
+    } else {
+        printf("The two strings are not equal.\n");
+    }
+
+    return 0;
+}
+```
+
+<h2 id="2.9">實作 strlen</h2>
+
+```C
+int mystrlen(const char *src) {
+    int counter = 0;
+    while (*src != '\0') {
+        counter++;
+        src++;
+    }
+    return counter;
+}
+
+int main() {
+    char str[] = "Hello, world!";
+    size_t len = mystrlen(str);
+    printf("The length of the string is %zu\n", len);
+    return 0;
+}
+```
+
 
 <h1 id="3">VT100</h1>
 
