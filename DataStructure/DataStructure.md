@@ -49,6 +49,9 @@ If there is related infringement or violation of related regulations, please con
 - [排序](#6)
   - [氣泡排序法(Bubble sort)](#6.1)
   - [快速排序法(Quicksort)](#6.2)
+  - [選擇排序法(Selection Sort)](#6.3)
+  - [插入排序法（Insertion Sort）](#6.4)
+  - [合併排序法（Merge Sort）](#6.5)
 - [搜尋](#7)
   - [循序搜尋法（Sequential Search）](#7.1)
   - [二分搜尋法（Binary Search）](#7.2)
@@ -2192,6 +2195,154 @@ int main() {
     quicksort(arr, 0, n - 1);
 
     printf("Sorted array: ");
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+    return 0;
+}
+```
+
+<h2 id="6.3">選擇排序法(Selection Sort)</h2>
+
+選擇排序（Selection Sort）是一種簡單的比較排序算法。它的工作原理是在每次循環中選擇數組中最小（或最大）的元素，並將其與當前循環的第一個元素交換。然後，算法繼續對剩餘的數組重複此過程，直到整個數組排序完成。
+
+```C
+#include <stdio.h>
+
+void selectionSort(int *arr, int n) {
+    for (int i = 0; i < n - 1; i++) {
+        int min_idx = i;
+
+        for (int j = i + 1; j < n; j++) {
+            if (arr[j] < arr[min_idx]) {
+                min_idx = j;
+            }
+        }
+
+        if (min_idx != i) {
+            int temp = arr[min_idx];
+            arr[min_idx] = arr[i];
+            arr[i] = temp;
+        }
+    }
+}
+
+int main() {
+    int arr[] = {64, 34, 25, 12, 22, 11, 90};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    selectionSort(arr, n);
+
+    printf("Sorted array: \n");
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+    return 0;
+}
+```
+
+<h2 id="6.4">插入排序法（Insertion Sort）</h2>
+
+```C
+#include <stdio.h>
+
+void insertionSort(int arr[], int n) {
+    // 從第二個元素（索引 1）開始遍歷數組
+    for (int i = 1; i < n; i++) {
+        int key = arr[i]; // 當前要插入的元素
+        int j = i - 1; // 用於遍歷已排序部分的變量
+
+        // 將當前元素（key）與已排序部分的元素進行比較，如果已排序部分的元素比 key 大，則將它們向右移動
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        // 將 key 插入到適當的位置
+        arr[j + 1] = key;
+    }
+}
+
+int main() {
+    int arr[] = {12, 11, 13, 5, 6};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    // 對數組進行插入排序
+    insertionSort(arr, n);
+
+    printf("Sorted array: \n");
+    // 打印排序後的數組
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+    return 0;
+}
+```
+
+<h2 id="6.5">合併排序法（Merge Sort）</h2>
+
+合併排序（Merge Sort）是一種分治算法，它將數組分成兩半，對每一半進行排序，然後將排序後的兩半合併。合併排序是一種穩定的排序算法，具有 O(n log n) 的時間複雜度。
+
+在這個示例中，我們定義了兩個函數：merge 和 mergeSort。
+
+- merge 函數將兩個已排序的子數組（left 和 right）合併成一個排序後的數組（arr）。
+- mergeSort 函數進行實際的排序。首先，它將數組分成兩半，然後對每一半進行遞歸排序。
+- 最後，它調用 merge 函數將排序後的兩半合併。
+
+```C
+#include <stdio.h>
+
+void merge(int *arr, int *left, int left_size, int *right, int right_size) {
+    int i = 0, j = 0, k = 0;
+
+    while (i < left_size && j < right_size) {
+        if (left[i] < right[j]) {
+            arr[k++] = left[i++];
+        } else {
+            arr[k++] = right[j++];
+        }
+    }
+
+    while (i < left_size) {
+        arr[k++] = left[i++];
+    }
+
+    while (j < right_size) {
+        arr[k++] = right[j++];
+    }
+}
+
+void mergeSort(int *arr, int n) {
+    if (n < 2) {
+        return;
+    }
+
+    int mid = n / 2;
+    int left[mid];
+    int right[n - mid];
+
+    for (int i = 0; i < mid; i++) {
+        left[i] = arr[i];
+    }
+
+    for (int i = mid; i < n; i++) {
+        right[i - mid] = arr[i];
+    }
+
+    mergeSort(left, mid);
+    mergeSort(right, n - mid);
+    merge(arr, left, mid, right, n - mid);
+}
+
+int main() {
+    int arr[] = {12, 11, 13, 5, 6, 7};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    mergeSort(arr, n);
+
+    printf("Sorted array: \n");
     for (int i = 0; i < n; i++) {
         printf("%d ", arr[i]);
     }
