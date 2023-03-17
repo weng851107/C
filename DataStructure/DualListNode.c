@@ -44,7 +44,7 @@ void insert_node(Node **start, int insert_after_value, int value)
     newnode->next = NULL;
 
     while (current != NULL) {
-        if (current->data = insert_after_value) {
+        if (current->data == insert_after_value) {
             if (current->next == NULL) {
                 newnode->prev = current;
                 current->next = newnode;

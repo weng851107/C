@@ -86,7 +86,7 @@ void print_list(Node *node)
 
 void free_list(Node *node)
 {
-    Node *tmpnode = (Node *)malloc(sizeof(Node));;
+    Node *tmpnode = NULL;
 
     while (node != NULL) {
         tmpnode = node;
