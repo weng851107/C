@@ -124,6 +124,10 @@ If there is related infringement or violation of related regulations, please con
 
 [BinaryTree.c](./BinaryTree.c)
 
+<h2 id="0.7">簡單的排列演算法</h2>
+
+[Sort.c](./Sort.c)
+
 <h1 id="1">指標教學</h1>
 
 <h2 id="1.1">(1) 何謂指標</h2>
