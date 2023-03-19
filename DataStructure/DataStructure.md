@@ -114,9 +114,13 @@ If there is related infringement or violation of related regulations, please con
 
 <h2 id="0.4">堆疊</h2>
 
+[void_stack.c](./void_stack.c)
+
 [Stack.c](./Stack.c)
 
 <h2 id="0.5">佇列</h2>
+
+[single_queue.c](./single_queue.c)
 
 [Queue.c](./Queue.c)
 
