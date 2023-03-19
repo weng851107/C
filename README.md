@@ -31,6 +31,7 @@ If there is related infringement or violation of related regulations, please con
   - [實作 strchr](#2.12)
   - [實作 strrchr](#2.13)
   - [qsort](#2.14)
+  - [實作 mystrstr](#2.15)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -1663,7 +1664,41 @@ int main() {
 }
 ```
 
+<h2 id="2.15">實作 mystrstr</h2>
 
+strstr() 是一个 C 标准库函数，用于在一个字符串中查找另一个字符串的出现位置。如果找到，则返回第一个匹配的字符位置的指针，否则返回 NULL。
+
+```C
+#include <stdio.h>
+#include <string.h>
+
+char *mystrstr(const char *str1, const char *str2) {
+    int len1 = strlen(str1);
+    int len2 = strlen(str2);
+    for (int i = 0; i < (len1 - len2); i++) {
+        int j = 0;
+        while ((j < len2) && (*(str1+i+j) == *(str2+j))) {
+            j++;
+        }
+        if (j == len2) {
+            return (char *)(str1+i);
+        }
+    }
+    return NULL;
+}
+
+int main() {
+    char str1[] = "hello world";
+    char str2[] = "world";
+    char *ptr = mystrstr(str1, str2);
+    if (ptr != NULL) {
+        printf("'%s' is found in '%s' at position %ld.\n", str2, str1, ptr - str1);
+    } else {
+        printf("'%s' is not found in '%s'.\n", str2, str1);
+    }
+    return 0;
+}
+```
 
 
 <h1 id="3">VT100</h1>
