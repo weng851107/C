@@ -27,6 +27,10 @@ If there is related infringement or violation of related regulations, please con
   - [實作 strcmp](#2.8)
   - [實作 strlen](#2.9)
   - [陣列大小與'\0'](#2.10)
+  - [實作string reverse](#2.11)
+  - [實作 strchr](#2.12)
+  - [實作 strrchr](#2.13)
+  - [qsort](#2.14)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -1523,6 +1527,144 @@ char e[] = "abcdef";
 ```
 
 在這個例子中，e 陣列的大小將為7，包括自動添加的結束符 '\0'。
+
+<h2 id="2.11">實作string reverse</h2>
+
+```C
+#include <stdio.h>
+#include <string.h>
+
+void swap(char *a, char *b)
+{
+    char tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+void str_reverse(char *str)
+{
+    char *ptr1 = str;
+    char *ptr2 = str + strlen(str) - 1;
+    while (ptr1 < ptr2) {
+        swap(ptr1, ptr2);
+        ptr1++;
+        ptr2--;
+    }
+}
+
+int main() {
+    char str[100];
+    printf("Enter a string: ");
+    
+    //scanf("%s", str);
+    //printf("Original string: %s\n", str);
+
+    fgets(str, sizeof(str), stdin);
+    str[strcspn(str, "\n")] = '\0'; // 去除fgets自動添加的換行符號
+
+    str_reverse(str);
+    printf("Reversed string: %s\n", str);
+    return 0;
+}
+```
+
+<h2 id="2.12">實作 strchr</h2>
+
+strchr是C語言中的一個字符串函數，它在一個字符串中搜索指定字符的第一次出現位置，並返回一個指向該位置的指針。
+
+```C
+#include <stdio.h>
+
+char *mystrchr(const char *str, char c)
+{
+    while (*str != '\0') {
+        if (*str == c) {
+            return (char *)str;
+        }
+        str++;
+    }
+    return NULL;
+}
+
+int main()
+{
+    char str[100] = "hello world";
+    char* ptr = mystrchr(str, 'o');
+    printf("First occurrence of 'o' is at position %ld\n", ptr - str);
+    return 0;
+}
+```
+
+<h2 id="2.13">實作 strrchr</h2>
+
+```C
+#include <stdio.h>
+
+char* mystrrchr(const char* str, char c) {
+    char* ptr = NULL;
+    while (*str != '\0') {
+        if (*str == c) {
+            ptr = (char*)str;
+        }
+        str++;
+    }
+    return ptr;
+}
+
+int main() {
+    char str[] = "hello world";
+    char ch = 'l';
+    char* ptr = mystrrchr(str, ch);
+    if (ptr != NULL) {
+        printf("Last occurrence of '%c' is at position %ld\n", ch, ptr - str);
+    } else {
+        printf("'%c' not found in string.\n", ch);
+    }
+    return 0;
+}
+```
+
+<h2 id="2.14">qsort</h2>
+
+C語言中的qsort()函數是一個標準庫函數，用於對任意類型的數組進行排序。它需要四個參數：
+
+- 數組的起始地址
+- 元素個數
+- 每個元素的大小
+- 以及一個比較函數的指針。
+
+比較函數的作用是定義排序的順序，它需要接受兩個指向數組元素的指針，並返回一個整數值，表示它們之間的大小關係。如果第一個元素應該排在第二個元素之前，返回一個負整數；如果第一個元素應該排在第二個元素之後，返回一個正整數；如果兩個元素相等，返回0。
+
+要使用qsort函數將數組中的每個元素減去5，可以編寫一個比較函數，使它在比較兩個元素時，先將它們各自減去5，然後再進行比較。這樣，在qsort函數內部排序時，每個元素都會先被減去5，然後按照比較函數定義的規則進行排序。
+
+```C
+#include <stdio.h>
+#include <stdlib.h>
+
+int cmp(void *a, void *b) {
+    return (*(int *)a - *(int *)b);
+}
+
+int cmp_minus(void *a, void *b) {
+    *(int *)a = *(int *)a - 5;
+    *(int *)b = *(int *)b - 5;
+    return (*(int *)a - *(int *)b);
+}
+
+int main() {
+    int arr[] = {4, 2, 1, 5, 3};
+    int n = sizeof(arr) / sizeof(int);
+    //qsort(arr, n, sizeof(int), cmp);
+    qsort(arr, n, sizeof(int), cmp_minus);
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    return 0;
+}
+```
+
+
+
 
 <h1 id="3">VT100</h1>
 
