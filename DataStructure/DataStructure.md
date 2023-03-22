@@ -55,6 +55,7 @@ If there is related infringement or violation of related regulations, please con
 - [搜尋](#7)
   - [循序搜尋法（Sequential Search）](#7.1)
   - [二分搜尋法（Binary Search）](#7.2)
+  - [哈希表（Hash Table）](#7.3)
 
 
 <h1 id="0">自我練習</h1>
