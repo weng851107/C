@@ -2436,5 +2436,217 @@ int main() {
 }
 ```
 
+<h2 id="7.3">哈希表（Hash Table）</h2>
+
+HashTable（哈希表），又稱散列表，是一種基於關鍵字（Key）查找和存儲值（Value）的數據結構。它通過使用哈希函數將關鍵字映射到數組的某個位置，從而實現快速查找、插入和刪除操作。在理想情況下，哈希表的時間複雜度為O(1)，即常數時間。
+
+哈希表的基本原理是：
+
+1. 創建一個固定大小的數組（稱為“buckets”或“slots”）。
+2. 使用哈希函數將關鍵字映射到數組的索引。哈希函數應具有良好的均勻分布特性，這意味著不同的關鍵字應盡可能地映射到不同的索引。
+3. 在數組中存儲值，索引由哈希函數計算得出。
+
+然而，有時哈希函數可能會將多個不同的關鍵字映射到相同的索引，這稱為"哈希碰撞"。為了解決這個問題，可以使用以下兩種常見的碰撞解決策略：
+
+1. 鏈接法（Chaining）：在每個數組索引處存儲一個鏈表，當哈希碰撞發生時，將具有相同索引的條目添加到對應的鏈表中。
+2. 開放定址法（Open Addressing）：當發生哈希碰撞時，按照某種順序在數組中尋找下一個可用的空位。常用的開放定址策略包括線性探測（Linear Probing）、二次探測（Quadratic Probing）和雙重哈希（Double Hashing）。
+
+哈希表的性能取決於多個因素，如哈希函數的質量、負載因子（即表中已使用的位置與總位置數的比例）和碰撞解決策略。在實際應用中，哈希表被廣泛用於實現字典、集合、緩存等數據結構。
+
+- 一個使用整數作為鍵的哈希表範例，包含插入、查找和刪除操作，並在發生哈希碰撞時使用鏈接法：
+
+  - 使用簡單的模數哈希函數將整數鍵映射到哈希表的索引。當然，實際應用中可能需要選擇更好的哈希函數來確保鍵在哈希表中均勻分布。
+  - 查找鍵值對，我們首先計算鍵的哈希值，然後檢查具有相應索引的鏈表節點。如果找到具有相同鍵的節點，則返回其值。
+  - 刪除操作中，我們同樣遍歷具有相同索引的鏈表節點，找到要刪除的節點後，調整鏈表結構以跳過該節點，並釋放相應的內存。
+
+    ```C
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    // 創建鏈表節點結構體
+    typedef struct Node {
+        int key;
+        int value;
+        struct Node *next;
+    } Node;
+
+    // 創建哈希表結構體
+    typedef struct HashTable {
+        int size;
+        Node **table;
+    } HashTable;
+
+    // 簡單的哈希函數
+    unsigned int hash(int key, int table_size) {
+        return key % table_size;
+    }
+
+    // 創建一個新的哈希表
+    HashTable *create_hash_table(int size) {
+        HashTable *hash_table = (HashTable *)malloc(sizeof(HashTable));
+        hash_table->size = size;
+        hash_table->table = (Node **)calloc(size, sizeof(Node *));
+        return hash_table;
+    }
+
+    // 插入鍵值對到哈希表
+    void insert(HashTable *hash_table, int key, int value) {
+        unsigned int index = hash(key, hash_table->size);
+        Node *new_node = (Node *)malloc(sizeof(Node));
+        new_node->key = key;
+        new_node->value = value;
+        new_node->next = hash_table->table[index];
+        hash_table->table[index] = new_node;
+    }
+
+    // 查找鍵值對
+    int find(HashTable *hash_table, int key) {
+        unsigned int index = hash(key, hash_table->size);
+        Node *node = hash_table->table[index];
+        while (node) {
+            if (node->key == key) {
+                return node->value;
+            }
+            node = node->next;
+        }
+        return -1; // 未找到
+    }
+
+    // 刪除鍵值對
+    void delete(HashTable *hash_table, int key) {
+        unsigned int index = hash(key, hash_table->size);
+        Node *node = hash_table->table[index];
+        Node *prev = NULL;
+
+        while (node) {
+            if (node->key == key) {
+                if (prev) {
+                    prev->next = node->next;
+                } else {
+                    hash_table->table[index] = node->next;
+                }
+                free(node);
+                return;
+            }
+            prev = node;
+            node = node->next;
+        }
+    }
+
+    int main() {
+        HashTable *hash_table = create_hash_table(100);
+        insert(hash_table, 1, 100);
+        insert(hash_table, 2, 200);
+        insert(hash_table, 3, 300);
+
+        printf("1: %d\n", find(hash_table, 1));
+        printf("2: %d\n", find(hash_table, 2));
+        printf("3: %d\n", find(hash_table, 3));
+
+        delete(hash_table, 2);
+        printf("2 (deleted): %d\n", find(hash_table, 2));
+
+        return 0;
+    }
+    ```
+
+- 一個使用字串鍵的哈希表範例，包含插入、查找和刪除操作，並在發生哈希碰撞時使用鏈接法：
+
+    ```C
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    // 創建鏈表節點結構體
+    typedef struct Node {
+        char *key;
+        int value;
+        struct Node *next;
+    } Node;
+
+    // 創建哈希表結構體
+    typedef struct HashTable {
+        int size;
+        Node **table;
+    } HashTable;
+
+    // 簡單的哈希函數
+    unsigned int hash(const char *key, int table_size) {
+        unsigned int hash_value = 0;
+        for (; *key != '\0'; key++) {
+            hash_value = *key + (hash_value << 5) - hash_value;
+        }
+        return hash_value % table_size;
+    }
+
+    // 創建一個新的哈希表
+    HashTable *create_hash_table(int size) {
+        HashTable *hash_table = (HashTable *)malloc(sizeof(HashTable));
+        hash_table->size = size;
+        hash_table->table = (Node **)calloc(size, sizeof(Node *));
+        return hash_table;
+    }
+
+    // 插入鍵值對到哈希表
+    void insert(HashTable *hash_table, const char *key, int value) {
+        unsigned int index = hash(key, hash_table->size);
+        Node *new_node = (Node *)malloc(sizeof(Node));
+        new_node->key = strdup(key);
+        new_node->value = value;
+        new_node->next = hash_table->table[index];
+        hash_table->table[index] = new_node;
+    }
+
+    // 查找鍵值對
+    int find(HashTable *hash_table, const char *key) {
+        unsigned int index = hash(key, hash_table->size);
+        Node *node = hash_table->table[index];
+        while (node) {
+            if (strcmp(node->key, key) == 0) {
+                return node->value;
+            }
+            node = node->next;
+        }
+        return -1; // 未找到
+    }
+
+    // 刪除鍵值對
+    void delete(HashTable *hash_table, const char *key) {
+        unsigned int index = hash(key, hash_table->size);
+        Node *node = hash_table->table[index];
+        Node *prev = NULL;
+
+        while (node) {
+            if (strcmp(node->key, key) == 0) {
+                if (prev) {
+                    prev->next = node->next;
+                } else {
+                    hash_table->table[index] = node->next;
+                }
+                free(node->key);
+                free(node);
+                return;
+            }
+            prev = node;
+            node = node->next;
+        }
+    }
+
+    int main() {
+        HashTable *hash_table = create_hash_table(100);
+        insert(hash_table, "apple", 1);
+        insert(hash_table, "banana", 2);
+        insert(hash_table, "orange", 3);
+
+        printf("apple: %d\n", find(hash_table, "apple"));
+        printf("banana: %d\n", find(hash_table, "banana"));
+        delete(hash_table, "orange");
+        printf("orange (after delete): %d\n", find(hash_table, "orange"));
+
+        return 0;
+    }
+    ```
+
+
 
 
