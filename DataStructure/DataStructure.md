@@ -28,6 +28,7 @@ If there is related infringement or violation of related regulations, please con
   - [(10) 函數回傳形式與參數型態皆為 void pointer，以pthread為例](#1.10)
   - [(11) 多重指標](#1.11)
   - [(12) 使用指標來運算](#1.12)
+  - [(13) 一維指標來訪問二維與三維陣列](#1.13)
 - [鏈結串列](#2)
   - [(1) 單向鏈結串列](#2.1)
   - [(2) 雙向鏈結串列](#2.2)
@@ -949,6 +950,77 @@ int main(int argc, char* argv)
 /*********************************************
 a * b = 200
 *********************************************/
+```
+
+<h2 id="1.13">(13) 一維指標來訪問二維與三維陣列</h2>
+
+使用一維指標訪問二維陣列元素的例子：
+
+```C
+#include <stdio.h>
+
+int main() {
+    int rows = 3;
+    int columns = 4;
+
+    int array[][4] = {
+        {1, 2, 3, 4},
+        {5, 6, 7, 8},
+        {9, 10, 11, 12}
+    };
+
+    int *ptr = (int *)array; // 將二維陣列的基地址賦給一維指標
+
+    // 使用一維指標訪問二維陣列的每個元素
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < columns; j++) {
+            int value = *(ptr + i * columns + j);
+            printf("array[%d][%d] = %d\n", i, j, value);
+        }
+    }
+
+    return 0;
+}
+```
+
+使用一維指標訪問三維陣列的元素的例子如下：
+
+```C
+#include <stdio.h>
+
+int main() {
+    int x = 2;
+    int y = 3;
+    int z = 4;
+
+    int array[][3][4] = {
+        {
+            {1, 2, 3, 4},
+            {5, 6, 7, 8},
+            {9, 10, 11, 12}
+        },
+        {
+            {13, 14, 15, 16},
+            {17, 18, 19, 20},
+            {21, 22, 23, 24}
+        }
+    };
+
+    int *ptr = (int *)array; // 將三維陣列的基地址賦給一維指標
+
+    // 使用一維指標訪問三維陣列的每個元素
+    for (int i = 0; i < x; i++) {
+        for (int j = 0; j < y; j++) {
+            for (int k = 0; k < z; k++) {
+                int value = *(ptr + i * y * z + j
+                * z + k);
+                printf("array[%d][%d][%d] = %d\n", i, j, k, value);
+            }
+        }
+    }
+
+    return 0;
+}
 ```
 
 <h1 id="2">鏈結串列</h1>
