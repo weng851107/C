@@ -2592,7 +2592,7 @@ HashTable（哈希表），又稱散列表，是一種基於關鍵字（Key）�
     void insert(HashTable *hash_table, const char *key, int value) {
         unsigned int index = hash(key, hash_table->size);
         Node *new_node = (Node *)malloc(sizeof(Node));
-        new_node->key = strdup(key);
+        strcpy(new_node->key, key);
         new_node->value = value;
         new_node->next = hash_table->table[index];
         hash_table->table[index] = new_node;
