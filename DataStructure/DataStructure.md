@@ -65,6 +65,8 @@ If there is related infringement or violation of related regulations, please con
 
 [SingleListNode.c](./SingleListNode.c)
 
+- [Polynomial.c](./Polynomial.c)
+
 <h2 id="0.2">雙向鏈結串列</h2>
 
 [DualListNode.c](./DualListNode.c)
