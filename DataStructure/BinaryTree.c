@@ -196,10 +196,8 @@ static int _tree_remove(Node** node, int value, cmp_fn cmp)
             free(tmpnode);
         }
         else {
-            Node* tmpnode = *node;
-            *node = (*node)->right;
-            free(tmpnode);
-            _tree_remove(node, _tree_min(*node), cmp);
+            (*node)->data = _tree_min((*node)->right);
+            _tree_remove(&(*node)->right, (*node)->data, cmp);
         }
         return 1;
     }
@@ -292,8 +290,8 @@ int main(int argc, char *argv[])
     inorder(binarytree->root);
     printf("\n");
 
-    printf("remove 70, \n");
-    ret = tree_remove(binarytree, 70);
+    printf("remove 23, \n");
+    ret = tree_remove(binarytree, 23);
     printf("inorder: ");
     inorder(binarytree->root);
     printf("\n");
