@@ -57,6 +57,8 @@ If there is related infringement or violation of related regulations, please con
   - [循序搜尋法（Sequential Search）](#7.1)
   - [二分搜尋法（Binary Search）](#7.2)
   - [哈希表（Hash Table）](#7.3)
+- [簡單演算法](#8)
+  - [最大公因數(GCD) 與 最小公倍數(LCM)](#8.1)
 
 
 <h1 id="0">自我練習</h1>
@@ -2722,6 +2724,55 @@ HashTable（哈希表），又稱散列表，是一種基於關鍵字（Key）�
     }
     ```
 
+<h1 id="8">簡單演算法</h1>
+
+<h2 id="8.1">最大公因數(GCD) 與 最小公倍數(LCM)</h2>
+
+輾轉相除法（又稱歐幾里得算法）：
+
+- 輾轉相除法的基本思想是利用整數的性質，不斷地將大數除以小數，直到除數為零，此時被除數即為最大公因數
+
+1. 給定兩個非零整數 a 和 b，其中 a >= b。
+2. 將 a 除以 b，計算餘數 r（即 a % b）。
+3. 如果餘數 r 等於零，則 b 是 a 和 b 的最大公因數。
+4. 如果餘數 r 不等於零，則將 b 賦值給 a，將 r 賦值給 b，然後回到步驟2。
+
+- 可以用於計算最小公倍數（LCM），因為 $LCM(a, b) = (a * b) / GCD(a, b)$，我們可以通過輾轉相除法先求得最大公因數（GCD），然後再計算兩數的最小公倍數（LCM）
+
+在C語言中，我們可以使用輾轉相除法（又稱輾轉相除法或歐幾里得算法）來計算兩個數的最大公因數（GCD）。同時，我們可以使用最大公因數來求兩個數的最小公倍數（LCM）。以下是使用遞迴算法來求最大公因數和最小公倍數的程式碼：
+
+```C
+#include <stdio.h>
+
+// 使用遞迴計算最大公因數(GCD)
+int gcd(int a, int b) {
+    if (b == 0) {
+        return a;
+    } else {
+        return gcd(b, a % b);
+    }
+}
+
+// 使用GCD計算最小公倍數(LCM)
+int lcm(int a, int b) {
+    return (a * b) / gcd(a, b);
+}
+
+int main() {
+    int num1, num2, gcd_result, lcm_result;
+
+    printf("請輸入兩個整數：");
+    scanf("%d %d", &num1, &num2);
+
+    gcd_result = gcd(num1, num2);
+    lcm_result = lcm(num1, num2);
+
+    printf("兩數的最大公因數是：%d\n", gcd_result);
+    printf("兩數的最小公倍數是：%d\n", lcm_result);
+
+    return 0;
+}
+```
 
 
 
