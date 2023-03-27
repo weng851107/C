@@ -59,6 +59,15 @@ If there is related infringement or violation of related regulations, please con
   - [哈希表（Hash Table）](#7.3)
 - [簡單演算法](#8)
   - [最大公因數(GCD) 與 最小公倍數(LCM)](#8.1)
+  - [Fibonacci 數列](#8.2)
+  - [階乘(factorial)](#8.3)
+- [位運算](#9)
+  - [自己利用^運算計算出自己](#9.1)
+  - [設置、清除或檢查特定的位](#9.2)
+  - [位移運算來快速進行乘法和除法](#9.3)
+  - [反轉一個整數的位數](#9.4)
+  - [XOR 運算符交換兩個數值](#9.5)
+  - [XOR 運算符將指定位取反](#9.6)
 
 
 <h1 id="0">自我練習</h1>
@@ -2774,5 +2783,195 @@ int main() {
 }
 ```
 
+<h2 id="8.2">Fibonacci 數列</h2>
+
+定義了一個名為 fibonacci 的函數，它接受一個整數 n 作為參數。如果 n 為 0，函數返回 0；如果 n 為 1，則返回 1。對於 n 大於 1 的情況，函數遞迴地調用自身，計算 fibonacci(n - 1) 和 fibonacci(n - 2) 的和，然後返回這個結果。
+
+```C
+#include <stdio.h>
+
+int fibonacci(int n) {
+    if (n == 0) {
+        return 0;
+    } else if (n == 1) {
+        return 1;
+    } else {
+        return fibonacci(n - 1) + fibonacci(n - 2);
+    }
+}
+
+int main() {
+    int n = 10;
+
+    printf("Fibonacci(%d) = %d\n", n, fibonacci(n));
+
+    return 0;
+}
+```
+
+<h2 id="8.3">階乘(factorial)</h2>
+
+```C
+#include <stdio.h>
+
+unsigned long long factorial(unsigned int n) {
+    if (n == 0) {
+        return 1;
+    } else {
+        return n * factorial(n - 1);
+    }
+}
+
+int main() {
+    unsigned int n = 10;
+
+    printf("%u! = %llu\n", n, factorial(n));
+
+    return 0;
+}
+```
+
+
+<h1 id="9">位運算</h1>
+
+<h2 id="9.1">自己利用^運算計算出自己</h2>
+
+根據按位異或（`XOR`）運算的性質，我們可以推導出以下結果：
+
+`(A ^ B) ^ B = A`
+
+- 如果 `A` 和 `B` 的某一位都是0，那麼 `(A ^ B)` 的這一位也是0，而 `(A ^ B) ^ B` 的這一位則等於 `B` 的這一位，即0。
+- 如果 `A` 和 `B` 的某一位都是1，那麼 `(A ^ B)` 的這一位是0，而 `(A ^ B) ^ B` 的這一位則等於 `B` 的這一位，即1。
+- 如果 `A` 的某一位是0，`B` 的某一位是1，那麼 `(A ^ B)` 的這一位是1，而 `(A ^ B) ^ B` 的這一位則等於1 ^ 1 = 0，即 `A` 的這一位。
+- 如果 `A` 的某一位是1，`B` 的某一位是0，那麼 `(A ^ B)` 的這一位是1，而 `(A ^ B) ^ B` 的這一位則等於1 ^ 0 = 1，即 `A` 的這一位。
+
+`(A ^ B) ^ A = B`
+
+- 如果 `A` 和 `B` 的某一位都是0，那麼 `(A ^ B)` 的這一位也是0，而 `(A ^ B) ^ A` 的這一位則等於 `A` 的這一位，即0。
+- 如果 `A` 和 `B` 的某一位都是1，那麼 `(A ^ B)` 的這一位是0，而 `(A ^ B) ^ A` 的這一位則等於 `A` 的這一位，即1。
+- 如果 `A` 的某一位是0，`B` 的某一位是1，那麼 `(A ^ B)` 的這一位是1，而 `(A ^ B) ^ A` 的這一位則等於1 ^ 0 = 1，即 `B` 的這一位。
+- 如果 `A` 的某一位是1，`B` 的某一位是0，那麼 `(A ^ B)` 的這一位是1，而 `(A ^ B) ^ A` 的這一位則等於1 ^ 1 = 0，即 `B` 的這一位。
+
+<h2 id="9.2">設置、清除或檢查特定的位</h2>
+
+```C
+#include <stdio.h>
+
+int main() {
+    unsigned int flags = 0;
+
+    // 設置第3位
+    flags |= (1 << 2);
+
+    // 檢查第3位是否設置
+    if (flags & (1 << 2)) {
+        printf("第3位已設置\n");
+    }
+
+    // 清除第3位
+    flags &= ~(1 << 2);
+
+    // 檢查第3位是否設置
+    if (!(flags & (1 << 2))) {
+        printf("第3位已清除\n");
+    }
+
+    return 0;
+}
+```
+
+<h2 id="9.3">位移運算來快速進行乘法和除法</h2>
+
+```C
+#include <stdio.h>
+
+int main() {
+    int num = 8;
+
+    // 乘以 2 (左移一位)
+    int multiply_by_2 = num << 1;
+    printf("%d * 2 = %d\n", num, multiply_by_2);
+
+    // 除以 2 (右移一位)
+    int divide_by_2 = num >> 1;
+    printf("%d / 2 = %d\n", num, divide_by_2);
+
+    return 0;
+}
+```
+
+<h2 id="9.4">反轉一個整數的位數</h2>
+
+```C
+#include <stdio.h>
+#include <stdint.h>
+
+uint32_t reverse_bits(uint32_t num) {
+    uint32_t result = 0;
+    int bits = sizeof(num) * 8;
+
+    for (int i = 0; i < bits; i++) {
+        result <<= 1;
+        result |= (num & 1);
+        num >>= 1;
+    }
+
+    return result;
+}
+
+int main() {
+    uint32_t num = 0b10010101;
+    uint32_t reversed = reverse_bits(num);
+
+    printf("原始數字: %u\n", num);
+    printf("反轉後的數字: %u\n", reversed);
+
+    return 0;
+}
+```
+
+<h2 id="9.5">XOR 運算符交換兩個數值</h2>
+
+這種方法只適用於整數類型，並且在某些情況下可能不是最佳選擇，因為它可能會引入未定義行為（例如，當 `a` 和 `b` 指向同一個內存位置時）。另外，對於現代編譯器，這種方法的性能優勢相對有限，因為編譯器通常能自動優化變量交換。
+
+```C
+#include <stdio.h>
+
+int main() {
+    int a = 5;
+    int b = 10;
+
+    printf("交換前: a = %d, b = %d\n", a, b);
+
+    // 使用 XOR 運算符交換兩個數值，不需要額外的臨時變量
+    a = a ^ b;
+    b = a ^ b;
+    a = a ^ b;
+
+    printf("交換後: a = %d, b = %d\n", a, b);
+
+    return 0;
+}
+```
+
+<h2 id="9.6">XOR 運算符將指定位取反</h2>
+
+```C
+#include <stdio.h>
+
+int main() {
+    int num = 13;      // 二進制表示：1101
+    int bit_position = 1; // 要取反的位（從0開始）
+
+    printf("原始數字: %d\n", num);
+
+    // 使用 XOR 運算符將指定位取反
+    num ^= (1 << bit_position);
+
+    printf("取反後的數字: %d\n", num); // 二進制表示：1111
+
+    return 0;
+}
+```
 
 
