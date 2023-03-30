@@ -74,6 +74,7 @@ If there is related infringement or violation of related regulations, please con
   - [Linux內核使用的 likely 與 unlikely](#5.14)
   - [可變參數宏(巨集, Micro)](#5.15)
   - [I2C 範例](#5.16)
+  - [GDB（GNU調試器）](#5.17)
 - [C Standard Library](#6)
   - [time.h](#6.1)
     - [Conversion for time](#6.1.1)
@@ -5104,6 +5105,190 @@ ANSI :1
 又透過 i2c_msg 包裝一層的 lib 可參考如下 (還有bug，但流程上如其所示)
 
 - [i2c_msg_lib.c](./code/I2C/i2c_msg_lib.c), [i2c_msg_lib.h](./code/I2C/i2c_msg_lib.h)
+
+<h2 id="5.17">GDB（GNU調試器）</h2>
+
+[GDB: The GNU Project Debugger](https://sourceware.org/gdb/)
+
+---
+
+在編譯時，使用 `-g` 選項生成調試信息：
+
+```bash
+gcc -g example.c -o example
+```
+
+使用GDB打開剛剛編譯好的程序：
+
+```bash
+gdb example
+```
+
+退出GDB：
+
+```bash
+(gdb) quit
+
+#------------------
+
+(gdb) q
+```
+
+一些基本的GDB命令和用法：
+
+- 中斷點
+
+  - `break` 或 `b`：設置斷點
+    - 在特定函數設置斷點
+    - 在特定檔案(任何源文件)的某行號設置斷點
+
+    ```bash
+    (gdb) break main
+    (gdb) break example.c:8
+    ```
+
+  - `info breakpoints`：查看所有斷點信息
+    - 使用命令時，它會顯示當前設置的所有斷點及其相關信息，假設跑出 "breakpoint already hit 1 time"，表示相應的斷點已經被觸發了1次，以此類推，若被觸發n次，則顯示n次
+
+    ```bash
+    (gdb) info breakpoints
+    ```
+
+  - `delete`：刪除斷點
+
+    ```bash
+    #命令會刪除編號為1的中斷點
+    (gdb) delete 1
+    ```
+
+- 啟動程序
+
+  - `run` 或 `r`：啟動程序，須手動設置main的中斷點
+    - 通常會先至少設置main，執行run，讓程式開始運行，再進行其他斷點或是單步調試
+    - run至main後，會設置 `target record-full` 使得後面可以使用反向調試。不是所有的平台和編譯器都支持反向調試，所以請先確認您的環境是否支持這個功能。
+
+    ```bash
+    (gdb) run
+    ```
+
+  - `start`：啟動程序並在main函數的開始處設置臨時中斷點
+    - 再進行其他斷點或是單步調試
+    - 可以設置 `target record-full` 使得後面可以使用反向調試。不是所有的平台和編譯器都支持反向調試，所以請先確認您的環境是否支持這個功能。
+
+    ```bash
+    (gdb) start
+    ```
+
+- 正向調試方式
+  - `step`（或 `s`）：單步調試，在遇到函數調用時會進入函數內部，允許您逐行調試函數內部的代碼。當函數執行完畢後，GDB將返回到調用函數的那一行。
+
+    ```bash
+    (gdb) step
+    ```
+
+  - `next`（或 `n`）：單行指令調試，將整個函數調用視為一個單獨的操作。使用 `next` 將執行整個函數，並在函數返回後停止。`next`命令不會進入函數內部進行逐行調試。
+
+    ```bash
+    (gdb) next
+    ```
+
+  - `continue`（或 `c`）：繼續執行直到達到下一個斷點
+
+    ```bash
+    (gdb) continue
+    ```
+
+- 反向調試方式 (不是所有的平台和編譯器都支持反向調試，所以請先確認您的環境是否支持這個功能)
+  - `reverse-step`（或 `s`）：反向單步調試
+
+    ```bash
+    (gdb) reverse-step
+    ```
+
+  - `reverse-next`（或 `n`）：反向單行指令調試
+
+    ```bash
+    (gdb) reverse-next
+    ```
+
+  - `reverse-continue`（或 `c`）：反向執行到達到上一個斷點
+
+    ```bash
+    (gdb) reverse-continue
+    ```
+
+  - 在完成反向調試後，使用 `target disconnect` 命令停止記錄以釋放資源
+
+- `watch <variable_name>`：設置觀察點，當表達式值發生變化時會自動暫停，其中\<variable_name\>是您要監視的變量的名稱，以便您可以檢查當某個變量的值發生變化時正在發生的情況。
+
+    ```bash
+    (gdb) watch result
+    ```
+
+- `print` 或 `p`：打印變量值
+  - GDB將結果存儲在一個名為"值歷史"（value history）的列表中。`$1` 表示這是值歷史列表中的第一個結果。每次您使用print命令，GDB都會將結果存儲為新的歷史值，並賦予相應的編號（如 `$2`，`$3` 等）。
+
+    ```bash
+    (gdb) print x
+    $1 = 10
+    (gdb) print y
+    $2 = 20
+    ```
+
+  - 值歷史的功能是讓您能夠在後續的GDB命令中引用先前計算出的結果
+
+    ```bash
+    #使用$1和$2進行了加法運算，結果存儲為$3
+    (gdb) print $1 + $2
+    $3 = 30
+    ```
+
+- 顯示與切換當前呼叫堆疊，便可在不同上下文中去查看不同變數的數值
+
+  - `backtrace`（或 `bt`）命令用於顯示當前呼叫堆疊
+    - 呼叫堆疊顯示的順序是從當前正在執行的函數（在這個例子中是function_a）到最初的函數（在這個例子中是main）。您可以根據堆疊順序了解函數之間的調用關係
+
+    ```bash
+    (gdb) backtrace
+    #0  function_a (arg1=0, arg2=1) at file.c:10
+    #1  0x00005555555546a9 in function_b (arg1=0, arg2=0) at file.c:20
+    #2  0x000055555555470c in main () at file.c:30
+    ```
+
+  - `frame` 命令允許您選擇和檢查呼叫堆疊中的特定幀
+    - 透過 `(gdb) frame 0` 即可切回目前幀，以便繼續調試
+
+    ```bash
+    #其中<frame_number>是要選擇的幀的編號（從backtrace命令輸出中獲取）
+    (gdb) frame <frame_number>
+
+    #查看目前特定幀的編號是哪個
+    (gdb) frame
+    ```
+
+- `list <filename>:<linenumber>` 命令顯示源代碼時每次顯示的行數，可以在調試過程中查看代碼
+
+    ```bash
+    (gdb) list example.c:10
+    ```
+
+  - 如果您想查看當前正在調試的源代碼文件中的某一行，您可以只提供行號：
+
+    ```bash
+    (gdb) list 10
+    ```
+
+  - 查看當前的listsize設置，可以使用 `show listsize` 命令：
+
+    ```bash
+    (gdb) show listsize
+    ```
+
+  - `set listsize` 命令用於設置使用list命令顯示源代碼時每次顯示的行數
+
+    ```bash
+    (gdb) set listsize 20
+    ```
 
 <h1 id="6">C Standard Library</h1>
 
