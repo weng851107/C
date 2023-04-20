@@ -175,6 +175,12 @@ http://www.speedfly.cn/tools/hexconvert/
 
 <h1 id="2">Knowledge</h1>
 
+https://hackmd.io/@g9tdU4gDSTiEZrerd0g7-w/SyCXEfsSE?type=view
+
+https://skylerz.medium.com/%E9%9D%A2%E8%A9%A6-c-c-%E8%A7%80%E5%BF%B5%E6%95%B4%E7%90%86-3a259b0a09bc
+
+https://medium.com/@earth875/c-c-%E5%B8%B8%E8%A6%8B%E8%A9%A6%E9%A1%8C-961619b14f88
+
 <h2 id="2.1">Data Structure</h2>
 
 [DataStructure.md](./DataStructure/DataStructure.md)
