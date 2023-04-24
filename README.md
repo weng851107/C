@@ -1773,6 +1773,120 @@ int (*(*foo)[5])(int, char);
 
 運算子具有相同的優先順序時，遵循從左到右的結合律，例如加法和減法。但有些運算子，如賦值運算子，則遵循從右到左的結合律。為了避免混淆，建議在表達式中使用括號來明確指定運算順序。
 
+<h2 id="2.18">虛擬節點在鏈表操作中的應用</h2>
+
+當使用虛擬節點時，你不需要擔心要修改鏈表的 head 時這些特殊情況，因為虛擬節點始終位於 head 之前，這樣可以讓我們將需要修改 head 的操作視為一般情況，如果需要指標指向dummyhead的話，可以再使用指標指到dummyhead的地址
+
+```C
+struct ListNode dummyhead;
+dummyhead.next = head;
+struct ListNode *ptr = &dummyhead;
+```
+
+以值類型創建的結構體變量一定是存儲在棧（stack）上，使用指針類型創建的結構體指針變量會根據是否有用malloc來決定是放在堆（heap）還是棧（stack）
+
+以下是使用虛擬節點的一些範例：
+
+1. 在鏈表新增節點：
+
+    ```C
+    void add_node(struct ListNode** head, int val) {
+        struct ListNode dummyhead;
+        dummyhead.next = *head;
+        struct ListNode* prev = &dummyhead;
+
+        // 移動到插入位置的前一個節點（即鏈表的最後一個節點）
+        while (prev->next) {
+            prev = prev->next;
+        }
+
+        // 創建新節點並插入
+        struct ListNode* new_node = (struct ListNode*)malloc(sizeof(struct ListNode));
+        new_node->val = val;
+        new_node->next = NULL; // 設置新節點的 next 為 NULL，因為它將成為鏈表的最後一個節點
+        prev->next = new_node;
+
+        *head = dummyhead.next;
+    }
+    ```
+
+2. 在鏈表某個值後插入節點：
+
+    ```C
+    void insert_node(struct ListNode** head, int insert_after_value, int value) {
+        // 創建一個 dummyhead 節點，並將其 next 成員設置為指向原始鏈表的 head
+        struct ListNode dummyhead;
+        dummyhead.next = *head;
+        struct ListNode *current = &dummyhead;
+
+        // 創建一個新節點，並設置其值和 next 成員
+        struct ListNode *newnode = (struct ListNode*)malloc(sizeof(struct ListNode));
+        newnode->val = value;
+        newnode->next = NULL;
+
+        // 遍歷鏈表，查找值為 insert_after_value 的節點
+        while (current) {
+            if (current->val == insert_after_value) {
+                // 將新節點插入到找到的節點之後
+                newnode->next = current->next;
+                current->next = newnode;
+                break;
+            }
+            // 移動到下一個節點
+            current = current->next;
+        }
+        // 更新 head 指針，使其指向虛擬頭節點的下一個節點
+        *head = dummyhead.next;
+    }
+    ```
+
+3. 刪除鏈表中的指定值：
+
+    ```C
+    void delete_node_by_value(struct ListNode** head, int val) {
+        struct ListNode dummyhead;
+        dummyhead.next = *head;
+        struct ListNode* prev = &dummyhead;
+
+        while (prev->next) {
+            if (prev->next->val == val) {
+                struct ListNode* temp = prev->next;
+                prev->next = temp->next;
+                free(temp);
+                break;
+            }
+            prev = prev->next;
+        }
+
+        *head = dummyhead.next;
+    }
+    ```
+
+4. 移除鏈表倒數第 N 個節點：
+
+    ```C
+    struct ListNode* remove_nth_from_end(struct ListNode* head, int n) {
+        struct ListNode header;
+        header.next = head;
+        struct ListNode *first = &header, *second = &header;
+
+        for (int i = 0; i <= n; ++i) {
+            first = first->next;
+        }
+
+        while (first) {
+            first = first->next;
+            second = second->next;
+        }
+
+        struct ListNode* temp = second->next;
+        second->next = temp->next;
+        free(temp);
+
+        return header.next;
+    }
+    ```
+
 <h1 id="3">VT100</h1>
 
 - VT100是一個古老的終端定義,後面出現的終端幾乎都相容這種終端，有時又稱為ANSI Escape Sequence.
