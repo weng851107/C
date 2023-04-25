@@ -35,6 +35,7 @@ If there is related infringement or violation of related regulations, please con
   - [複雜指針宣告的左右法則](#2.16)
   - [運算子優先順序](#2.17)
   - [虛擬節點在鏈表操作中的應用](#2.18)
+  - [範例解析pointer to pointor](#2.19)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
