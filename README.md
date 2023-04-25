@@ -1410,16 +1410,14 @@ Hello, wor
 #include <stdio.h>
 
 char *my_strcpy(char *dest, const char *src) {
-    char *dest_copy = dest;
+    char *ptr = dest;
 
     while (*src) {
-        *dest = *src;
-        dest++;
-        src++;
+        *ptr++ = *src++;
     }
-    *dest = '\0';
+    *ptr = '\0';
 
-    return dest_copy;
+    return dest;
 }
 
 int main() {
@@ -1443,18 +1441,16 @@ Destination: Hello, world!
 #include <stdio.h>
 
 char *my_strncpy(char *dest, const char *src, size_t n) {
-    char *dest_copy = dest;
+    char *ptr = dest;
 
-    while (n > 1 && *src) {
-        *dest = *src;
-        dest++;
-        src++;
+    while (n > 0 && *src) {
+        *ptr++ = *src++;
         n--;
     }
 
-    *dest = '\0';
+    *ptr = '\0';
 
-    return dest_copy;
+    return dest;
 }
 
 int main() {
@@ -1480,13 +1476,13 @@ Destination: Hello, wo
 #include <stdio.h>
 
 int mystrcmp(char *s1, char *s2) {
-    int i = 0;
-    while (s1[i] == s2[i]) {
-        if (s1[i] == '\0')
+    while (*s1 == *s2) {
+        if (*s1 == '\0')
             return 0;
-        i++;        
+        s1++;
+        s2++;
     }
-    return s1[i] - s2[i];
+    return *s1 - *s2;
 }
 
 int main() {
@@ -1514,7 +1510,7 @@ int main() {
 <h2 id="2.9">實作 strlen</h2>
 
 ```C
-int mystrlen(const char *src) {
+int mystrlen1(const char *src) {
     int counter = 0;
     while (*src != '\0') {
         counter++;
@@ -1523,9 +1519,18 @@ int mystrlen(const char *src) {
     return counter;
 }
 
+int mystrlen2(const char *src) {
+    char *ptr = (char *)src;
+    while (*ptr != '\0') {
+        ptr++;
+    }
+    return ptr - src;
+}
+
 int main() {
     char str[] = "Hello, world!";
-    size_t len = mystrlen(str);
+    size_t len = mystrlen1(str);
+    //size_t len = mystrlen2(str);
     printf("The length of the string is %zu\n", len);
     return 0;
 }
@@ -1851,11 +1856,11 @@ struct ListNode *ptr = &dummyhead;
         newnode->next = NULL;
 
         // 遍歷鏈表，查找值為 insert_after_value 的節點
-        while (current) {
-            if (current->val == insert_after_value) {
+        while (current->next) {
+            if (current->next->val == insert_after_value) {
                 // 將新節點插入到找到的節點之後
-                newnode->next = current->next;
-                current->next = newnode;
+                newnode->next = current->next->next;
+                current->next->next = newnode;
                 break;
             }
             // 移動到下一個節點
@@ -1877,7 +1882,7 @@ struct ListNode *ptr = &dummyhead;
         while (prev->next) {
             if (prev->next->val == val) {
                 struct ListNode* temp = prev->next;
-                prev->next = temp->next;
+                prev->next = prev->next->next;
                 free(temp);
                 break;
             }
