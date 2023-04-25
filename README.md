@@ -1129,6 +1129,30 @@ int main()
 
 其他範例：
 
+0. 實作sizeof求結構體大小
+
+    ```C
+    #include <stdio.h>
+
+    // 定義結構體
+    typedef struct mystruct {
+        int a;
+        char b;
+        double c;
+        struct mystruct *next;
+    } MyStruct;
+
+    int main() {
+        MyStruct dummy[2];
+        printf("Size of MyStruct: %ld\n", (char *)(dummy+1)-(char *)(dummy));
+        return 0;
+    }
+
+    /******** 64-bits CPU
+    Size of MyStruct: 24
+    *********/
+    ```
+
 1. 假設有一個整數陣列 a，請問以下程式碼的輸出是什麼？
 
     ```C
