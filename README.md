@@ -34,6 +34,7 @@ If there is related infringement or violation of related regulations, please con
   - [實作 mystrstr](#2.15)
   - [複雜指針宣告的左右法則](#2.16)
   - [運算子優先順序](#2.17)
+  - [虛擬節點在鏈表操作中的應用](#2.18)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -1884,6 +1885,117 @@ struct ListNode *ptr = &dummyhead;
         free(temp);
 
         return header.next;
+    }
+    ```
+
+<h2 id="2.19">範例解析pointer to pointor</h2>
+
+當需要修改到linklist中head node的address時才需要使用到二維的結構指針作為函數的引數，且實作過程中可以使用：
+
+- 直接操作 linklist，並分為 head node 與 non-head node 來處理
+- 使用strutc dummyhead變數，並把 `dummyhead.next = head`，在配置一個結構指針指向dummyhead，`struct ListNode* ptr = &dummyhead;`，來進行操作便可把head也當作non-head node，最後回傳 `dummyhead.next` 或把 head 指向 dummyhead.next，便可更新 head 
+
+範例解析pointer to pointor
+
+-  "Convert Sorted List to Binary Search Tree"
+
+    ```C
+    /**
+     * Definition for singly-linked list.
+     * struct ListNode {
+     *     int val;
+     *     struct ListNode *next;
+     * };
+     */
+    /**
+     * Definition for a binary tree node.
+     * struct TreeNode {
+     *     int val;
+     *     struct TreeNode *left;
+     *     struct TreeNode *right;
+     * };
+     */
+
+    // 找到鏈表的中間節點
+    struct ListNode* find_middle(struct ListNode* head) {
+        struct ListNode *slow = head, *fast = head, *prev = NULL;
+
+        while (fast && fast->next) {
+            prev = slow;
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+
+        if (prev) {
+            prev->next = NULL;
+        }
+
+        return slow;
+    }
+
+    // 將有序鏈表轉換為二叉搜索樹
+    struct TreeNode* sortedListToBST(struct ListNode* head) {
+        if (!head) {
+            return NULL;
+        }
+        
+        if (!head->next) {
+            struct TreeNode* root = (struct TreeNode*)malloc(sizeof(struct TreeNode));
+            root->val = head->val;
+            root->left = NULL;
+            root->right = NULL;
+            return root;
+        }
+
+        struct ListNode* mid = find_middle(head);
+        struct TreeNode* root = (struct TreeNode*)malloc(sizeof(struct TreeNode));
+        root->val = mid->val;
+        root->left = sortedListToBST(head);
+        root->right = sortedListToBST(mid->next);
+
+        return root;
+    }
+    ```
+
+- single linklist: 有無操作到head的address來決定是否需要 `**`
+
+    ```C
+    void add_node(Node **start, int value)
+    {
+        Node *current = *start;
+        Node *newnode = (Node *)malloc(sizeof(Node));
+        newnode->data = value;
+        newnode->next = NULL;
+
+        if (*start == NULL) {
+            *start = newnode;
+            return;
+        }
+
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = newnode;
+
+        return;
+    }
+
+    void insert_node(Node *start, int insert_after_value, int value)
+    {
+        Node *current = start;
+        Node *newnode = (Node *)malloc(sizeof(Node));
+        newnode->data = value;
+        newnode->next = NULL;
+
+        while (current != NULL) {
+            if (current->data == insert_after_value) {
+                newnode->next = current->next;
+                current->next = newnode;
+                return;
+            }
+            current = current->next;
+        }
+        return;
     }
     ```
 
