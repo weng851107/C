@@ -2385,6 +2385,66 @@ int main() {
 }
 ```
 
+用linklist來實現：
+
+- 比較當前節點和已排序部分的最後一個節點。如果當前節點的值大於等於已排序部分的最後一個節點的值，則無需進行插入操作，直接將指針向前移動。
+- 否則，我們需要在已排序部分找到合適的插入位置，將當前節點插入並更新鏈表結構。
+
+    ```C
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     struct ListNode *next;
+    * };
+    */
+    struct ListNode* insertionSortList(struct ListNode* head){
+        // 如果鏈表為空或只有一個節點，則直接返回頭節點
+        if (!head || !head->next) {
+            return head;
+        }
+        
+        // 初始化虛擬頭節點
+        struct ListNode dummyhead;
+        dummyhead.next = head;
+        
+        // 初始化lastnode為已排序部分的最後一個節點，current為待排序部分的第一個節點
+        struct ListNode* lastnode = head;
+        struct ListNode* current = head->next;
+        
+        // 遍歷待排序部分的節點
+        while (current) {
+            // 如果當前節點的值大於等於已排序部分的最後一個節點的值
+            // 這意味著當前節點已經在正確的位置，無需插入操作
+            if (lastnode->val <= current->val) {
+                lastnode = current;
+                current = current->next;
+            } else {
+                // 初始化prev_ptr為虛擬頭節點，用於遍歷已排序部分，尋找插入位置
+                struct ListNode* prev_ptr = &dummyhead;
+                
+                // 在已排序部分中找到插入位置
+                while ((prev_ptr->next) && (prev_ptr->next->val < current->val)) {
+                    prev_ptr = prev_ptr->next;
+                }
+                
+                // 將當前節點從待排序部分中移除
+                lastnode->next = current->next;
+                
+                // 將當前節點插入到已排序部分的正確位置
+                current->next = prev_ptr->next;
+                prev_ptr->next = current;
+                
+                // 更新current指針，指向待排序部分的下一個節點
+                current = lastnode->next;
+            }
+        }
+        
+        // 返回已排序鏈表的頭節點
+        return dummyhead.next;
+    }
+    ```
+
 <h2 id="6.5">合併排序法（Merge Sort）</h2>
 
 合併排序（Merge Sort）是一種分治算法，它將數組分成兩半，對每一半進行排序，然後將排序後的兩半合併。合併排序是一種穩定的排序算法，具有 O(n log n) 的時間複雜度。
@@ -2454,6 +2514,108 @@ int main() {
     return 0;
 }
 ```
+
+用linklist來實現
+
+- `struct ListNode* splitlist(struct ListNode* head)` 將一個串鏈從中間分成兩個，並回傳中間的節點
+- `struct ListNode* mergesort(struct ListNode* head)` 把一個原始串鏈不斷一分為二，並呼叫 `struct ListNode* mergelist(struct ListNode* L, struct ListNode* R)`，透過遞迴會從最小的各別為一個node的開始排列
+
+    ```C
+    /**
+    * Definition for singly-linked list.
+    * struct ListNode {
+    *     int val;
+    *     struct ListNode *next;
+    * };
+    */
+
+    // 此函數用於將鏈表分成兩部分，並返回中間節點
+    struct ListNode* splitlist(struct ListNode* head)
+    {
+        if (!head) {
+            return NULL;
+        }
+        struct ListNode* prev = NULL;
+        struct ListNode* slow = head;
+        struct ListNode* fast = head;
+        while (fast && fast->next) {
+            prev = slow;
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+
+        if (prev) {
+            prev->next = NULL;
+        }
+
+        return slow;
+    }
+
+    // 此函數將兩個已排序的鏈表 L 和 R 進行合併
+    struct ListNode* mergelist(struct ListNode* L, struct ListNode* R)
+    {
+        if (!L && !R) {
+            return NULL;
+        }
+        else if (!L) {
+            return R;
+        }
+        else if (!R) {
+            return L;
+        }
+
+        struct ListNode T;
+        struct ListNode *ptr = &T;
+        // 遍歷 L 和 R，按照節點的值將它們合併到新的鏈表中
+        while (L && R) {
+            if (L->val <= R->val) {
+                ptr->next = L;
+                L = L->next;
+            }
+            else {
+                ptr->next = R;
+                R = R->next;
+            }
+            ptr = ptr->next;
+        }
+
+        // 將 L 和 R 中剩餘的節點添加到新鏈表的末尾
+        while (L) {
+            ptr->next = L;
+            L = L->next;
+            ptr = ptr->next;
+        }
+
+        while (R) {
+            ptr->next = R;
+            R = R->next;
+            ptr = ptr->next;
+        }
+        return T.next;
+    }
+
+    // 使用合併排序對鏈表進行排序
+    struct ListNode* mergesort(struct ListNode* head)
+    {
+        if (!head || !head->next) {
+            return head;
+        }
+
+        // 將鏈表分為兩部分
+        struct ListNode* mid = splitlist(head);
+        struct ListNode* left = mergesort(head);
+        struct ListNode* right = mergesort(mid);
+
+        // 合併兩個已排序的鏈表
+        return mergelist(left, right);
+    }
+
+    // 主函數
+    struct ListNode* sortList(struct ListNode* head){
+        return mergesort(head);
+    }
+    ```
+
 
 <h1 id="7">搜尋</h1>
 
