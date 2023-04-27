@@ -68,7 +68,8 @@ If there is related infringement or violation of related regulations, please con
   - [反轉一個整數的位數](#9.4)
   - [XOR 運算符交換兩個數值](#9.5)
   - [XOR 運算符將指定位取反](#9.6)
-
+- [Other](#10)
+  - [LRU Cache](#10.1)
 
 <h1 id="0">自我練習</h1>
 
@@ -3146,6 +3147,139 @@ int main() {
 
     return 0;
 }
+```
+
+<h1 id="10">Others</h1>
+
+<h2 id="10.1">LRU Cache</h2>
+
+一個基於雙向鏈表和哈希表的實現。這個實現有幾個主要部分：
+
+1. Node 結構：用於表示鏈表中的節點，它包含key、value、prev指針（指向前一個節點）和next指針（指向下一個節點）。
+2. LRUCache 結構：它包含LRU Cache的容量（capacity）、當前大小（size）、頭指針（head）、尾指針（tail）和一個哈希表（hash_table），該哈希表用於存儲每個節點的指針。
+3. create_node 函數：用於創建一個新的節點。
+4. lRUCacheCreate 函數：用於創建並初始化一個新的LRU Cache。
+5. move_to_front 函數：將節點移動到鏈表的前面。這是LRU Cache算法的核心部分，每次訪問時，都會將節點移動到鏈表的前面。
+6. lRUCacheGet 函數：根據key獲取節點的值，如果節點存在，則將其移動到鏈表的前面。
+7. lRUCachePut 函數：向Cache中添加或更新節點。如果節點已存在，則更新值並將節點移動到鏈表的前面；如果節點不存在，則創建一個新節點並將其添加到鏈表的前面。如果Cache已滿，則首先刪除最近最少使用的節點（即鏈表的尾節點）。
+8. lRUCacheFree 函數：釋放LRU Cache占用的內存。
+
+```C
+#include <stdlib.h>
+
+typedef struct Node {
+    int key;
+    int value;
+    struct Node* prev;
+    struct Node* next;
+} Node;
+
+typedef struct LRUCache {
+    int capacity;
+    int size;
+    Node* head;
+    Node* tail;
+    Node** hash_table;
+} LRUCache;
+
+Node* create_node(int key, int value) {
+    Node* node = (Node*)malloc(sizeof(Node));
+    node->key = key;
+    node->value = value;
+    node->prev = NULL;
+    node->next = NULL;
+    return node;
+}
+
+LRUCache* lRUCacheCreate(int capacity) {
+    LRUCache* cache = (LRUCache*)malloc(sizeof(LRUCache));
+    cache->capacity = capacity;
+    cache->size = 0;
+    cache->head = NULL;
+    cache->tail = NULL;
+    cache->hash_table = (Node**)calloc(capacity, sizeof(Node*));
+    return cache;
+}
+
+void move_to_front(LRUCache* obj, Node* node) {
+    if (obj->head == node) return;
+
+    if (node == obj->tail) {
+        obj->tail = node->prev;
+    } else {
+        node->next->prev = node->prev;
+    }
+
+    node->prev->next = node->next;
+    node->next = obj->head;
+    node->prev = NULL;
+    obj->head->prev = node;
+    obj->head = node;
+}
+
+int lRUCacheGet(LRUCache* obj, int key) {
+    Node* node = obj->hash_table[key];
+    if (!node) return -1;
+    move_to_front(obj, node);
+    return node->value;
+}
+
+void lRUCachePut(LRUCache* obj, int key, int value) {
+    Node* node = obj->hash_table[key];
+
+    if (node) {
+        node->value = value;
+        move_to_front(obj, node);
+        return;
+    }
+
+    if (obj->size == obj->capacity) {
+        Node* last_node = obj->tail;
+        obj->hash_table[last_node->key] = NULL;
+
+        if (obj->size == 1) {
+            obj->head = obj->tail = NULL;
+        } else {
+            obj->tail = obj->tail->prev;
+            obj->tail->next = NULL;
+        }
+
+        obj->size--;
+        free(last_node);
+    }
+
+    node = create_node(key, value);
+    obj->hash_table[key] = node;
+
+    if (!obj->head) {
+        obj->head = obj->tail = node;
+    } else {
+        node->next = obj->head;
+        obj->head->prev = node;
+        obj->head = node;
+    }
+
+    obj->size++;
+}
+
+void lRUCacheFree(LRUCache* obj) {
+    Node* current = obj->head;
+    while (current) {
+        Node* temp = current->next;
+        free(current);
+        current = temp;
+    }
+    free(obj->hash_table);
+    free(obj);
+}
+
+/**
+ * Your LRUCache struct will be instantiated and called as such:
+ * LRUCache* obj = lRUCacheCreate(capacity);
+ * int param_1 = lRUCacheGet(obj, key);
+ * lRUCachePut(obj, key, value);
+ * lRUCacheFree(obj);
+*/
 ```
 
 
