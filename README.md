@@ -36,6 +36,7 @@ If there is related infringement or violation of related regulations, please con
   - [運算子優先順序](#2.17)
   - [虛擬節點在鏈表操作中的應用](#2.18)
   - [範例解析pointer to pointor](#2.19)
+  - [單調遞減棧](#2.20)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -2028,6 +2029,72 @@ struct ListNode *ptr = &dummyhead;
         return;
     }
     ```
+
+<h2 id="2.20">單調遞減棧</h2>
+
+單調遞減棧的核心概念是，棧中的元素始終保持遞減順序。在處理一些序列問題時，單調遞減棧可以幫助我們高效地找到下一個更大或更小的元素。
+
+- 時間複雜度為 O(n)
+
+```C
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    int arr[] = {1, 5, 3, 2, 8, 4};
+    int n = sizeof(arr) / sizeof(arr[0]);
+    int *nextGreater = (int *)malloc(n * sizeof(int));
+    int *stack = (int *)malloc(n * sizeof(int));
+    int top = -1;
+
+    // Traverse the array
+    for (int i = 0; i < n; i++) {
+        // While the stack is not empty and the current element is greater than the element at the top index of the stack
+        while (top != -1 && arr[i] > arr[stack[top]]) {
+            int index = stack[top--];
+            nextGreater[index] = arr[i];
+        }
+
+        // Push the current index onto the stack
+        stack[++top] = i;
+    }
+
+    // For the remaining indices in the stack, there is no next greater element
+    while (top != -1) {
+        int index = stack[top--];
+        nextGreater[index] = -1;
+    }
+
+    // Print the next greater elements
+    for (int i = 0; i < n; i++) {
+        printf("Next greater element for %d is %d\n", arr[i], nextGreater[i]);
+    }
+
+    free(nextGreater);
+    free(stack);
+
+    return 0;
+}
+```
+
+1. 分配兩個動態數組：nextGreater 用於存儲每個元素的下一個更大元素，stack 用於實現單調遞減棧。
+2. 初始化棧頂指針 top 為 -1，表示棧是空的。
+
+遍歷數組：
+
+3. 對於數組中的每個元素，重複以下步驟：
+
+    a. 如果棧不為空，並且當前元素大於棧頂索引對應的元素，則：
+
+      - 記錄棧頂索引。
+      - 將棧頂指針減一（彈出棧頂元素）。
+      - 將當前元素設置為記錄的索引對應的下一個更大元素。
+
+    b. 將當前索引推入棧（更新棧頂指針）。
+
+處理剩餘的棧元素：
+
+4. 對於棧中剩餘的元素，它們沒有下一個更大的元素。將這些元素對應的下一個更大元素設置為 -1(或其他數值)，並將它們從棧中彈出。
 
 <h1 id="3">VT100</h1>
 
