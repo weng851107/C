@@ -37,6 +37,7 @@ If there is related infringement or violation of related regulations, please con
   - [虛擬節點在鏈表操作中的應用](#2.18)
   - [範例解析pointer to pointor](#2.19)
   - [單調遞減棧](#2.20)
+  - [將鏈表分成兩部分，並返回中間節點](#2.21)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -2095,6 +2096,40 @@ int main() {
 處理剩餘的棧元素：
 
 4. 對於棧中剩餘的元素，它們沒有下一個更大的元素。將這些元素對應的下一個更大元素設置為 -1(或其他數值)，並將它們從棧中彈出。
+
+<h2 id="2.21">將鏈表分成兩部分，並返回中間節點</h2>
+
+```C
+/**
+* Definition for singly-linked list.
+* struct ListNode {
+*     int val;
+*     struct ListNode *next;
+* };
+*/
+
+// 此函數用於將鏈表分成兩部分，並返回中間節點
+struct ListNode* splitlist(struct ListNode* head)
+{
+    if (!head) {
+        return NULL;
+    }
+    struct ListNode* prev = NULL;
+    struct ListNode* slow = head;
+    struct ListNode* fast = head;
+    while (fast && fast->next) {
+        prev = slow;
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    if (prev) {
+        prev->next = NULL;
+    }
+
+    return slow;
+}
+```
 
 <h1 id="3">VT100</h1>
 
