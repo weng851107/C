@@ -15,6 +15,7 @@ If there is related infringement or violation of related regulations, please con
   - [堆疊](#0.4)
   - [佇列](#0.5)
   - [二元樹](#0.6)
+  - [簡單的排列演算法](#0.7)
 - [指標教學](#1)
   - [(1) 何謂指標](#1.1)
   - [(2) 宣告指標變數](#1.2)
@@ -147,6 +148,229 @@ If there is related infringement or violation of related regulations, please con
 - 在 `enqueue` 或 `dequeue` 時，只要 `Queue *QList` 就可以實際新增Node，而不用使用二維指標
   - `Queue` 結構包含兩個指針：`front` 和 `rear`。當您在 `enqueue` 或 `dequeue` 函數中對 Queue 進行操作時，您是在修改這兩個指針的值。您不需要使用二維指標，因為您不是在修改 Queue 結構本身，而是在修改它所包含的指針。
   - 這裡不需要使用二維指標的原因是，您已經將 Queue 結構的地址傳遞給了相應的函數，這些函數可以直接訪問並修改這個結構的內容。二維指標在這種情況下沒有意義，因為它們通常用於表示二維數組，而在這裡，您只需要訪問和修改 Queue 結構的內容。
+
+---
+
+Design Circular Queue, 設計一個循環隊列
+
+- `MyCircularQueue(k)`: 構造函數，設置隊列的大小為k。
+- `enQueue(value)`: 將一個元素插入循環隊列。如果成功返回true，否則返回false。
+- `deQueue()`: 從循環隊列中刪除一個元素。如果成功返回true，否則返回false。
+- `Front()`: 從循環隊列中獲取前端元素。如果隊列為空，返回-1。
+- `Rear()`: 從循環隊列中獲取尾端元素。如果隊列為空，返回-1。
+- `isEmpty()`: 檢查循環隊列是否為空。
+- `isFull()`: 檢查循環隊列是否已滿。
+
+    ```C
+    #include <stdbool.h>
+    #include <stdlib.h>
+
+    typedef struct mycircularqueue{
+        int *queue;
+        int head;
+        int tail;
+        int size;
+        int capacity;
+    } MyCircularQueue;
+
+    MyCircularQueue* myCircularQueueCreate(int k) {
+        MyCircularQueue* obj = (MyCircularQueue*) malloc(sizeof(MyCircularQueue));
+        obj->queue = (int*) malloc(k * sizeof(int));
+        obj->head = -1;
+        obj->tail = -1;
+        obj->size = 0;
+        obj->capacity = k;
+        return obj;
+    }
+
+    bool myCircularQueueEnQueue(MyCircularQueue* obj, int value) {
+        if (obj->size == obj->capacity) return false;
+
+        if (obj->tail == -1) {
+            obj->head = 0;
+            obj->tail = 0;
+        } else {
+            obj->tail = (obj->tail + 1) % obj->capacity;
+        }
+        obj->queue[obj->tail] = value;
+        obj->size++;
+        return true;
+    }
+
+    bool myCircularQueueDeQueue(MyCircularQueue* obj) {
+        if (obj->size == 0) return false;
+
+        if (obj->head == obj->tail) {
+            obj->head = -1;
+            obj->tail = -1;
+        } else {
+            obj->head = (obj->head + 1) % obj->capacity;
+        }
+        obj->size--;
+        return true;
+    }
+
+    int myCircularQueueFront(MyCircularQueue* obj) {
+        if (obj->size == 0) return -1;
+        return obj->queue[obj->head];
+    }
+
+    int myCircularQueueRear(MyCircularQueue* obj) {
+        if (obj->size == 0) return -1;
+        return obj->queue[obj->tail];
+    }
+
+    bool myCircularQueueIsEmpty(MyCircularQueue* obj) {
+        return obj->size == 0;
+    }
+
+    bool myCircularQueueIsFull(MyCircularQueue* obj) {
+        return obj->size == obj->capacity;
+    }
+
+    void myCircularQueueFree(MyCircularQueue* obj) {
+        free(obj->queue);
+        free(obj);
+    }
+
+    /**
+    * Your MyCircularQueue struct will be instantiated and called as such:
+    * MyCircularQueue* obj = myCircularQueueCreate(k);
+    * bool param_1 = myCircularQueueEnQueue(obj, value);
+    * bool param_2 = myCircularQueueDeQueue(obj);
+    * int param_3 = myCircularQueueFront(obj);
+    * int param_4 = myCircularQueueRear(obj);
+    * bool param_5 = myCircularQueueIsEmpty(obj);
+    * bool param_6 = myCircularQueueIsFull(obj);
+    * myCircularQueueFree(obj);
+    */
+    ```
+
+---
+
+Design Circular Deque, 設計一個雙端隊列（Deque）結構
+
+- `MyCircularDeque(k)`: 構造函數，設置隊列的大小為k。
+- `insertFront()`: 將一個元素添加到双端队列头部。 如果操作成功返回 true。
+- `insertLast()`: 將一個元素添加到双端队列尾部。如果操作成功返回 true。
+- `deleteFront()`: 從双端队列头部刪除一個元素。 如果操作成功返回 true。
+- `deleteLast()`: 從双端队列尾部刪除一個元素。 如果操作成功返回 true。
+- `getFront()`: 從双端队列中獲取前端元素。 如果双端队列为空，返回 -1。
+- `getRear()`: 從双端队列中獲取尾端元素。 如果双端队列为空，返回 -1。
+- `isEmpty()`: 檢查双端队列是否為空。
+- `isFull()`: 檢查双端队列是否已滿。
+
+    ```C
+    #include <stdbool.h>
+    #include <stdlib.h>
+
+    typedef struct {
+        int *deque;
+        int head;
+        int tail;
+        int size;
+        int capacity;
+    } MyCircularDeque;
+
+    MyCircularDeque* myCircularDequeCreate(int k) {
+        MyCircularDeque* obj = (MyCircularDeque*) malloc(sizeof(MyCircularDeque));
+        obj->deque = (int*) malloc(k * sizeof(int));
+        obj->head = -1;
+        obj->tail = -1;
+        obj->size = 0;
+        obj->capacity = k;
+        return obj;
+    }
+
+    bool myCircularDequeInsertFront(MyCircularDeque* obj, int value) {
+        if (obj->size == obj->capacity) return false;
+
+        if (obj->head == -1) {
+            obj->head = 0;
+            obj->tail = 0;
+        } else {
+            obj->head = (obj->head - 1 + obj->capacity) % obj->capacity;
+        }
+        obj->deque[obj->head] = value;
+        obj->size++;
+        return true;
+    }
+
+    bool myCircularDequeInsertLast(MyCircularDeque* obj, int value) {
+        if (obj->size == obj->capacity) return false;
+
+        if (obj->tail == -1) {
+            obj->head = 0;
+            obj->tail = 0;
+        } else {
+            obj->tail = (obj->tail + 1) % obj->capacity;
+        }
+        obj->deque[obj->tail] = value;
+        obj->size++;
+        return true;
+    }
+
+    bool myCircularDequeDeleteFront(MyCircularDeque* obj) {
+        if (obj->size == 0) return false;
+
+        if (obj->head == obj->tail) {
+            obj->head = -1;
+            obj->tail = -1;
+        } else {
+            obj->head = (obj->head + 1) % obj->capacity;
+        }
+        obj->size--;
+        return true;
+    }
+
+    bool myCircularDequeDeleteLast(MyCircularDeque* obj) {
+        if (obj->size == 0) return false;
+
+        if (obj->head == obj->tail) {
+            obj->head = -1;
+            obj->tail = -1;
+        } else {
+            obj->tail = (obj->tail - 1 + obj->capacity) % obj->capacity;
+        }
+        obj->size--;
+        return true;
+    }
+
+    int myCircularDequeGetFront(MyCircularDeque* obj) {
+        if (obj->size == 0) return -1;
+        return obj->deque[obj->head];
+    }
+
+    int myCircularDequeGetRear(MyCircularDeque* obj) {
+        if (obj->size == 0) return -1;
+        return obj->deque[obj->tail];
+    }
+
+    bool myCircularDequeIsEmpty(MyCircularDeque* obj) {
+        return obj->size == 0;
+    }
+
+    bool myCircularDequeIsFull(MyCircularDeque* obj) {
+        return obj->size == obj->capacity;
+    }
+
+    void myCircularDequeFree(MyCircularDeque* obj) {
+        free(obj->deque);
+        free(obj);
+    }
+
+    /**
+    * Your MyCircularDeque struct will be instantiated and called as such:
+    * MyCircularDeque* obj = myCircularDequeCreate(k);
+    * bool param_1 = myCircularDequeInsertFront(obj, value);
+    * bool param_2 = myCircularDequeInsertLast(obj, value);
+    * bool param_3 = myCircularDequeDeleteFront(obj);
+    * bool param_4 = myCircularDequeDeleteLast(obj);
+    * int param_5 = myCircularDequeGetFront(obj);
+    * int param_6
+    ```
+
+---
 
 [Queue.c](./Queue.c)
 
