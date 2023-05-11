@@ -2097,6 +2097,62 @@ int main() {
 
 4. 對於棧中剩餘的元素，它們沒有下一個更大的元素。將這些元素對應的下一個更大元素設置為 -1(或其他數值)，並將它們從棧中彈出。
 
+---
+
+循環陣列找出下一個大於本元素的數值
+
+- https://leetcode.com/problems/next-greater-element-ii/description/
+
+步驟：
+
+1. Initialize the stack and result arrays with memory allocation.
+2. Iterate through the input array twice (to handle the circular nature).
+3. Get the actual index by taking the remainder of the current index and the input array size.
+4. Check if the current element is greater than the elements stored in the stack.
+5. If it is greater, update the result array with the next greater element and remove the index from the stack.
+6. If the current index has not been processed, push it onto the stack.
+7. After iterating through the input array twice, for any remaining indices in the stack, set their corresponding result value to -1.
+8. Free the memory allocated for the stack.
+9. Return the result array.
+
+    ```C
+    // Note: The returned array must be malloced, assume caller calls free().
+    int* nextGreaterElements(int* nums, int numsSize, int* returnSize) {
+        // Set the return size equal to the input array size
+        *returnSize = numsSize;
+        // Initialize the stack with a pointer and the top index set to -1
+        int top = -1;
+        int *stack = (int*) malloc((*returnSize) * sizeof(int));
+        // Initialize the result array with a pointer
+        int *result = (int*) malloc((*returnSize) * sizeof(int));
+
+        // Iterate through the input array twice to handle the circular nature
+        for (int i = 0; i < 2 * numsSize; i++) {
+            // Get the actual index by taking the remainder of the current index and the input array size
+            int index = i % numsSize;
+            // Check if the current element is greater than the elements stored in the stack
+            while ((top >= 0) && (nums[index] > nums[stack[top]])) {
+                // Update the result array with the next greater element and remove the index from the stack
+                result[stack[top--]] = nums[index];
+            }
+            // If this index has not been processed, push it onto the stack
+            if (i < numsSize) {
+                stack[++top] = i;
+            }
+        }
+
+        // For the remaining indices in the stack, set their corresponding result value to -1
+        while (top >= 0) {
+            result[stack[top--]] = -1;
+        }
+        // Free the memory allocated for the stack
+        free(stack);
+
+        // Return the result array
+        return result;
+    }
+    ```
+
 <h2 id="2.21">將鏈表分成兩部分，並返回中間節點</h2>
 
 ```C
