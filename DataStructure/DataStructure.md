@@ -3543,4 +3543,242 @@ void lRUCacheFree(LRUCache* obj) {
 
 總結：Brute-force、Greedy和Heuristic算法各有優缺點。在選擇適當的算法時，應該根據問題的規模、對解的精度要求以及可用計算資源等因素進行綜合考慮。
 
+---
+
+實際 C語言 範例
+
+**[Brute-force 算法]**：
+
+<u>旅行銷售員問題（Traveling Salesman Problem，簡稱TSP）</u>是一個經典的組合最優化問題。在這個問題中，有一個銷售員需要訪問多個城市，每個城市只能訪問一次，最後返回出發城市。每對城市之間的距離已知。目標是找到一條最短的路線，使得銷售員訪問所有城市並返回出發點的總距離最短。
+
+Brute-force算法是一種暴力求解方法，用於求解TSP問題的一種簡單方法。該算法會嘗試所有可能的路線組合，然後從中選擇最短的路線。以下是使用Brute-force算法求解TSP問題的步驟：
+
+1. 計算所有可能的路線組合。對於n個城市，總共有(n-1)!種可能的路線。
+2. 對於每條路線，計算總距離。
+3. 從所有路線中選擇總距離最短的路線。
+
+儘管Brute-force算法在理論上可以找到TSP問題的最優解，但由於其計算複雜度為O(n!)，在實際應用中，當城市數量增加時，所需的計算時間會急劇增加。因此，Brute-force算法僅適用於較小規模的TSP問題。
+
+```C
+#include <stdio.h>
+#include <stdbool.h>
+#include <limits.h>
+
+// 計算當前選擇的路線的總距離
+int tsp_brute_force_recursive(int n, int dist[][n], int start, int current, int visited[], int count) {
+    // 當所有城市都被訪問過，返回當前城市到出發點的距離
+    if (count == n) {
+        return dist[current][start];
+    }
+
+    int min_dist = INT_MAX;
+    // 遍歷所有城市
+    for (int i = 0; i < n; i++) {
+        // 如果城市尚未訪問
+        if (!visited[i]) {
+            // 標記城市為已訪問
+            visited[i] = true;
+            // 計算包含當前選擇的城市在內的路線的總距離
+            int dist_taken = dist[current][i] + tsp_brute_force_recursive(n, dist, start, i, visited, count + 1);
+            // 更新最短距離
+            min_dist = dist_taken < min_dist ? dist_taken : min_dist;
+            // 撤銷對城市的訪問標記，以便下次遍歷
+            visited[i] = false;
+        }
+    }
+
+    return min_dist;
+}
+
+// TSP問題的Brute-force解法
+int tsp_brute_force(int n, int dist[][n], int start) {
+    int visited[n];
+    for (int i = 0; i < n; i++) {
+        visited[i] = false;
+    }
+    // 標記起始城市為已訪問
+    visited[start] = true;
+    return tsp_brute_force_recursive(n, dist, start, start, visited, 1);
+}
+
+int main() {
+    // 初始化距離矩陣
+    int dist[][4] = {
+        {0, 10, 15, 20},
+        {10, 0, 35, 25},
+        {15, 35, 0, 30},
+        {20, 25, 30, 0},
+    };
+
+    // 調用Brute-force解法，獲得最短距離
+    int min_dist = tsp_brute_force(4, dist, 0);
+    printf("Minimum distance: %d\n", min_dist);
+
+    return 0;
+}
+```
+
+- `tsp_brute_force_recursive` 函數遞歸地計算當前選擇路線的總距離，傳入參數包括城市數量 n，距離矩陣 dist，出發城市 start，當前城市 current，訪問狀態數組 visited 和已訪問城市計數器 count。
+- 如果已訪問所有城市，則返回當前城市到出發點的距離。
+- 遍歷所有城市，檢查每個城市的訪問狀態。如果未訪問，則標記該城市並計算包含當前選擇城市的路線的總距離。更新最短距離並撤銷對城市的訪問標記以進行下次遍歷。
+- 在 `tsp_brute_force` 函數中，初始化訪問狀態數組，標記起始城市為已訪問，然後調用遞歸函數以計算最短距離。
+- 在 `main` 函數中，初始化距離矩陣，調用 Brute-force 解法並獲得最短距離，然後輸出最短距離。
+
+**[Greedy 算法]**：
+
+<u>分數背包問題（Fractional Knapsack Problem）</u>是一個經典的組合最優化問題。在這個問題中，有一個背包，其容量有限，並且有一系列物品。每個物品都有一定的價值和重量。目標是將物品放入背包，使得背包中物品的總價值最大，同時不超過背包的容量限制。
+
+與0-1背包問題（0-1 Knapsack Problem）不同，分數背包問題允許物品以任意比例分割。也就是說，可以將物品的一部分放入背包，而不是完整的物品。
+
+1. 計算每個物品的價值與重量的比率（價值/重量）。
+2. 按價值與重量的比率對物品進行降序排序。
+3. 依次選擇比率最高的物品，直到背包容量達到限制。
+
+每次選擇都是在當前情況下最優的選擇，貪心算法可以找到分數背包問題的最優解。
+
+```C
+#include <stdio.h>
+#include <stdlib.h>
+
+// 定義物品結構體，包含價值和重量
+typedef struct {
+    int value;
+    int weight;
+} Item;
+
+// 比較函數，用於對物品按價值與重量的比率進行排序
+int cmp(const void *a, const void *b) {
+    double ratio1 = (*(Item *)a).value / (double)(*(Item *)a).weight;
+    double ratio2 = (*(Item *)b).value / (double)(*(Item *)b).weight;
+    return (ratio1 < ratio2) - (ratio1 > ratio2);
+}
+
+// 分數背包問題的貪心解法
+double fractional_knapsack(int capacity, Item items[], int n) {
+    // 對物品按價值與重量的比率進行降序排序
+    qsort(items, n, sizeof(Item), cmp);
+
+    double max_value = 0;
+    // 遍歷物品，按價值與重量比率從高到低選擇物品
+    for (int i = n - 1; i >= 0 && capacity > 0; i--) {
+        // 計算選擇的物品重量
+        int weight_taken = capacity < items[i].weight ? capacity : items[i].weight;
+        // 更新總價值
+        max_value += weight_taken * (items[i].value / (double)items[i].weight);
+        // 更新剩餘背包容量
+        capacity -= weight_taken;
+    }
+
+    return max_value;
+}
+
+int main() {
+    // 初始化物品陣列
+    Item items[] = {{60, 10}, {100, 20}, {120, 30}};
+    // 計算物品數量
+    int n = sizeof(items) / sizeof(items[0]);
+    // 背包容量
+    int capacity = 50;
+
+    // 調用分數背包問題的貪心解法
+    double max_value = fractional_knapsack(capacity, items, n);
+    // 輸出最大價值
+    printf("Maximum value: %.2f\n", max_value);
+
+    return 0;
+}
+```
+
+- 定義物品結構體，包含價值和重量。
+- 實現比較函數，用於對物品按價值與重量的比率進行排序。
+- 實現分數背包問題的貪心解法函數。
+- 在主函數中，初始化物品陣列、計算物品數量和背包容量。
+- 調用分數背包問題的貪心解法函數，獲得最大價值。
+- 輸出最大價值。
+
+**[Heuristic 啟發式算法]**
+
+最近鄰近似法（Nearest Neighbor Heuristic）解決旅行銷售員問題（TSP）
+
+```C
+#include <stdio.h>
+#include <stdbool.h>
+#include <limits.h>
+
+// 尋找距離最近的未訪問城市
+int nearest_neighbor(int n, int dist[][n], int current, bool visited[]) {
+    int min_dist = INT_MAX;
+    int nearest = -1;
+
+    for (int i = 0; i < n; i++) {
+        if (!visited[i] && dist[current][i] < min_dist) {
+            min_dist = dist[current][i];
+            nearest = i;
+        }
+    }
+
+    return nearest;
+}
+
+// 最近鄰近似法解決TSP問題
+int tsp_nearest_neighbor(int n, int dist[][n], int start) {
+    bool visited[n];
+    for (int i = 0; i < n; i++) {
+        visited[i] = false;
+    }
+    visited[start] = true;
+
+    int current = start;
+    int total_dist = 0;
+
+    for (int count = 1; count < n; count++) {
+        int nearest = nearest_neighbor(n, dist, current, visited);
+        total_dist += dist[current][nearest];
+        visited[nearest] = true;
+        current = nearest;
+    }
+
+    total_dist += dist[current][start];
+    return total_dist;
+}
+
+int main() {
+    // 初始化距離矩陣
+    int dist[][4] = {
+        {0, 10, 15, 20},
+        {10, 0, 35, 25},
+        {15, 35, 0, 30},
+        {20, 25, 30, 0},
+    };
+
+    // 調用最近鄰近似法解決TSP問題
+    int total_dist = tsp_nearest_neighbor(4, dist, 0);
+    printf("Total distance: %d\n", total_dist);
+
+    return 0;
+}
+```
+
+- `nearest_neighbor` 函數用於尋找距離當前城市最近的未訪問城市。傳入參數包括城市數量 n，距離矩陣 dist，當前城市 current，和訪問狀態數組 visited。
+- 在 `tsp_nearest_neighbor` 函數中，初始化訪問狀態數組，標記起始城市為已訪問，初始化當前城市與總距離。
+- 循環遍歷未訪問城市，每次選擇距離最近的未訪問城市，更新總距離與當前城市。
+- 當所有城市都被訪問後，將總距離加上返回出發點的距離，得到最後的總距離，然後返回此距離作為最近鄰近似法的結果。
+- 在 `main` 函數中，初始化距離矩陣，調用最近鄰近似法解決TSP問題，獲得總距離並輸出。
+
+---
+
+啟發式（Heuristic）和貪婪（Greedy）算法都是解決優化問題的方法，尤其是在問題規模較大時。它們之間的主要差異在於求解策略和局部決策的方式：
+
+1. 啟發式（Heuristic）算法：
+
+    啟發式算法是基於問題特性和經驗法則設計的一類近似解決方案。它們通常無法保證找到最優解，但可以在相對短的時間內找到一個可接受的近似解。啟發式算法的主要目的是降低計算複雜度，從而在有限時間內得到合理的結果。啟發式算法依賴於問題特性，通常需要針對特定問題進行設計。
+
+2. 貪婪（Greedy）算法：
+
+    貪婪算法是一種特殊類型的啟發式算法，它通過在每個決策階段選擇當前最佳選擇來求解問題。貪婪算法的核心思想是局部最優選擇能導致全局最優解。然而，這並不總是成立，因此貪婪算法也可能無法找到最優解。儘管如此，在某些情況下，貪婪算法可以找到最優解，例如在最小生成樹問題中的 Kruskal 算法和 Prim 算法。
+
+總結一下，啟發式算法是一個更廣泛的概念，包含了很多針對不同問題的解決策略。而貪婪算法是啟發式算法的一個子集，它遵循一個特定的策略，即在每一步選擇當前看起來最好的選擇。在某些問題中，貪婪算法可能會得到最優解，但在其他問題中，它可能只能得到一個近似解。
+
+
+
 
