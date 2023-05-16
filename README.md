@@ -38,6 +38,7 @@ If there is related infringement or violation of related regulations, please con
   - [範例解析pointer to pointor](#2.19)
   - [單調遞減棧](#2.20)
   - [將鏈表分成兩部分，並返回中間節點](#2.21)
+  - [實作 strdup](#2.22)
 - [VT100](#3)
   - [VT100字元型控制碼](#3.1)
   - [VT100數字型控制碼](#3.2)
@@ -2186,6 +2187,24 @@ struct ListNode* splitlist(struct ListNode* head)
     return slow;
 }
 ```
+
+<h2 id="2.22">實作 strdup</h2>
+
+`strdup` 是一個常見的 C 函數，它將複製一個給定的字符串，並返回一個指向新分配記憶體的指標，該記憶體中包含了複製的字符串。這個函數在許多情況下都很有用，但是並非所有的 C 標準庫都提供這個函數。如果你需要的話，你可以自己實作這個函數。
+
+```C
+#include <stdlib.h>
+#include <string.h>
+
+char *my_strdup(const char *src) {
+    char *dst = malloc(strlen(src) + 1);  // Space for length plus null
+    if (dst == NULL) return NULL;         // No memory
+    strcpy(dst, src);                     // Copy the characters
+    return dst;                           // Return the new string
+}
+```
+
+這個函數的使用者需要注意，返回的記憶體需要在使用完畢後使用 free 函數釋放，以避免記憶體洩漏。
 
 <h1 id="3">VT100</h1>
 
