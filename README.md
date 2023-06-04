@@ -1016,7 +1016,40 @@ int* a[10];     // 指針數組，數組元素類型為 int*
 int (*a)[10];   // 數組指針，指向數組類型 int a[10]
 int* f(int);    // 指針函數，函數返回值為 int*
 int (*f)(int);  // 函數指針，指向函數類型 int f(int)
-int* (*f)[10];  // 數組指針，指向數組類型 int *a[10] 
+int* (*f)[10];  // 數組指針，指向數組類型 int *a[10]
+int (*functionPointers[10])(int);   // 函數指針陣列，該陣列的元素是指向函數的指針，這些函數接受一個 int 參數並返回 int 型別的值。
+```
+
+```C
+#include <stdio.h>
+
+int addOne(int n) {
+    return n + 1;
+}
+
+int subtractOne(int n) {
+    return n - 1;
+}
+
+int multiplyByTwo(int n) {
+    return n * 2;
+}
+
+int main() {
+    // 定義函數指針陣列
+    int (*functionPointers[10])(int);
+
+    // 初始化函數指針陣列
+    functionPointers[0] = addOne;
+    functionPointers[1] = subtractOne;
+    functionPointers[2] = multiplyByTwo;
+
+    // 使用函數指針調用函數
+    int result = functionPointers[0](5);
+    printf("Result: %d\n", result);
+
+    return 0;
+}
 ```
 
 #### 指針類型與運算
